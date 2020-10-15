@@ -1,0 +1,21 @@
+elog:
+  __default:                          # default setting for all logs
+    dir          : var/log                 # default var/log
+    group        : <HOSTNAME>              # default <HOSTNAME>, if set, real dir will be $Dir/$Group,  <HOSTNAME> represent hostname of current machine
+    filename     : default                 # default elog(will set to elog if not set), will not write to file if set empty, real file path will be $Dir/$Group/$File, you can also use <HOSTNAME> to represent hostname of current machine
+    max_size     : 100                     # default 100, unit MB
+    max_backups  : 7                       # default 7
+    max_age      : 7                       # default 7
+    compress     : true                    # default true
+    console_level: info                    # default debug     [debug, info, warn, error, fatal, panic]
+    console_color: true                    # default true
+    file_level   : debug                   # default debug     [debug, info, warn, error, fatal, panic]
+    file_color   : false                   # default false
+    stack_level  : warn                    # default warn      [debug, info, warn, error, fatal, panic], base stack level
+
+  log1:
+    group   : ""
+    filename: log1                         # it will set from __default if not set and will no write to file if set empty
+
+  log2:
+    filename: log2
