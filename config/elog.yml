@@ -11,7 +11,7 @@ elog:
     console_color: true                    # default true
     file_level   : debug                   # default debug     [debug, info, warn, error, fatal, panic]
     file_color   : false                   # default false
-    stack_level  : warn                    # default warn      [debug, info, warn, error, fatal, panic], base stack level
+    stack_level  : error                   # default warn      [debug, info, warn, error, fatal, panic], base stack level
 
   log1:
     group   : ""

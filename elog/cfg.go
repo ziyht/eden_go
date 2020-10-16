@@ -48,7 +48,7 @@ func baseDfCfg() Cfg {
 		ConsoleLevel: "debug",
 		ConsoleColor: true,
 		FileLevel   : "debug",
-		FileColor   : true,
+		FileColor   : false,
 		StackLevel  : "warn",
 	}
 }
