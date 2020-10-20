@@ -11,11 +11,17 @@ import (
 
 const SampleCfg =
 `
+#
+# Tag representation for dir, group, filename
+#    <HOSTNAME> -> hostname of current machine
+#    <APP_NAME> -> binary file name of current application
+#    <LOG_NAME> -> the name of current logger, in __default, it will set to elog
+
 elog:
   __default:                          # default setting for all logs
     dir          : var/log                 # default var/log
-    group        : <HOSTNAME>              # default <HOSTNAME>, if set, real dir will be $Dir/$Group,  <HOSTNAME> represent hostname of current machine
-    filename     : elog                    # default elog(will set to elog if not set), will not write to file if set empty, real file path will be $Dir/$Group/$File, you can also use <HOSTNAME> to represent hostname of current machine
+    group        : <HOSTNAME>              # default <HOSTNAME>, if set, real dir will be $Dir/$Group
+    filename     : <LOG_NAME>              # default <LOG_NAME>, will not write to file if set empty, real file path will be $Dir/$Group/$File
     max_size     : 100                     # default 100, unit MB
     max_backups  : 7                       # default 7
     max_age      : 7                       # default 7
@@ -24,7 +30,7 @@ elog:
     console_color: true                    # default true
     file_level   : debug                   # default debug     [debug, info, warn, error, fatal, panic]
     file_color   : false                   # default false
-    stack_level  : warn                    # default warn      [debug, info, warn, error, fatal, panic], base stack level
+    stack_level  : error                   # default warn      [debug, info, warn, error, fatal, panic], base stack level
 
   log1:
     group   : ""
@@ -69,6 +75,7 @@ func InitFromYml(file string) {
 		if name == DefaultCfgKey{
 			continue
 		}
+
 		NewLogger(name, cfg)
 	}
 }
@@ -99,7 +106,7 @@ func NewLogger(name string, cfg* Cfg) *Logger {
 		syslog.Fatalf("generate new logger for '%s' failed: invalid cfg, nil value", name)
 	}
 
-	err := checkAndValidateCfg(cfg)
+	err := checkAndValidateCfg(name, cfg)
 	if err != nil {
 		syslog.Fatalf("generate new logger for '%s' failed: %s", name, err)
 	}

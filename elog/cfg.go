@@ -40,7 +40,7 @@ func baseDfCfg() Cfg {
 	return Cfg{
 		Dir         : "var/log",
 		Group       : "<HOSTNAME>",
-		FileName    : "elog",
+		FileName    : "<LOG_NAME>",
 		MaxSize     : 100,
 		MaxBackups  : 7,
 		MaxAge      : 7,
@@ -105,6 +105,11 @@ func readCfgFromYaml(file string) *Cfgs {
 
 		if name == DefaultCfgKey {
 			continue
+		}
+
+		if curcfg == nil {
+			curcfg = &Cfg{}
+			cfgs.Cfgs[name] = curcfg
 		}
 
 		err := validateCfgFromGfCfg(curcfg, curDfCfg, gfcfg, RootKey, name)
@@ -182,15 +187,11 @@ func validateCfgFromGfCfg(cfg *Cfg, dfcfg *Cfg, gfcfg *gjson.Json, rootKey strin
 	if cfg.MaxAge < 0 {
 		return fmt.Errorf("invalid max_age(%d), should >= 0", cfg.MaxAge)
 	}
-	if cfg.Group != "" {
-		hostname, _ := os.Hostname()
-		cfg.Group = strings.Replace(cfg.Group, "<HOSTNAME>", hostname, -1)
-	}
-	if cfg.FileName != "" {
-		hostname, _ := os.Hostname()
-		cfg.FileName = strings.Replace(cfg.FileName, "<HOSTNAME>", hostname, -1)
-	} else {
-		cfg.FileName = "elog"
+
+	if curKey != DefaultCfgKey {
+		cfg.Dir      = getRepresentPathValue(cfg.Dir     , curKey)
+		cfg.Group    = getRepresentPathValue(cfg.Group   , curKey)
+		cfg.FileName = getRepresentPathValue(cfg.FileName, curKey)
 	}
 
 	cfg.consoleLevel, err = parsingLevelStr(cfg.ConsoleLevel)
@@ -209,7 +210,7 @@ func validateCfgFromGfCfg(cfg *Cfg, dfcfg *Cfg, gfcfg *gjson.Json, rootKey strin
 	return nil
 }
 
-func checkAndValidateCfg(cfg *Cfg) error {
+func checkAndValidateCfg(name string, cfg *Cfg) error {
 
 	var err error
 
@@ -222,14 +223,10 @@ func checkAndValidateCfg(cfg *Cfg) error {
 	if cfg.MaxAge < 0 {
 		return fmt.Errorf("invalid max_age(%d), should >= 0", cfg.MaxSize)
 	}
-	if cfg.Group != "" {
-		hostname, _ := os.Hostname()
-		cfg.Group = strings.Replace(cfg.Group, "<HOSTNAME>", hostname, -1)
-	}
-	if cfg.FileName != "" {
-		hostname, _ := os.Hostname()
-		cfg.FileName = strings.Replace(cfg.FileName, "<HOSTNAME>", hostname, -1)
-	}
+
+	cfg.Dir      = getRepresentPathValue(cfg.Dir     , name)
+	cfg.Group    = getRepresentPathValue(cfg.Group   , name)
+	cfg.FileName = getRepresentPathValue(cfg.FileName, name)
 
 	cfg.consoleLevel, err = parsingLevelStr(cfg.ConsoleLevel)
 	if err != nil {
@@ -245,6 +242,40 @@ func checkAndValidateCfg(cfg *Cfg) error {
 	}
 
 	return nil
+}
+
+var (
+	appName  string
+	hostname string
+	)
+
+func getRepresentPathValue(path string, name string) string {
+
+	if path == "" {
+		return path
+	}
+
+	if hostname == "" {
+		hostname, _ = os.Hostname()
+	}
+
+	if appName == "" {
+		appName, _ = os.Executable()
+		appName = filepath.Base(appName)
+
+		appName = strings.TrimSuffix(appName, ".exe")
+	}
+
+	path = strings.ReplaceAll(path, "<HOSTNAME>", hostname)
+	path = strings.ReplaceAll(path, "<APP_NAME>", appName)
+
+	if name == DefaultCfgKey {
+		path = strings.ReplaceAll(path, "<LOG_NAME>", "elog")
+	} else {
+		path = strings.ReplaceAll(path, "<LOG_NAME>", name)
+	}
+
+	return path
 }
 
 func parsingLevelStr(str string) (zapcore.Level, error) {
