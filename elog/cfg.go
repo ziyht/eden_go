@@ -85,15 +85,19 @@ func readCfgFromYaml(file string) *Cfgs {
 		syslog.Fatalf("readCfgFromYaml failed from %s:\n Unmarshal failed:\n %s", file_, err.Error())
 	}
 
+	initDfCfg()
+
 	gfcfg, _ := gjson.Load(file_, false)
-	baseDfCfg := baseDfCfg()
+	baseDfCfg := dfCfg
+
 	// parsing __default cfg
 	{
+		// generate default config if not set
 		if _, ok := cfgs.Cfgs[DefaultCfgKey]; !ok {
-			cfgs.Cfgs[DefaultCfgKey] = &baseDfCfg
+			cfgs.Cfgs[DefaultCfgKey] = baseDfCfg
 		}
 		__defaultCfg := cfgs.Cfgs[DefaultCfgKey]
-		err := validateCfgFromGfCfg(__defaultCfg, &baseDfCfg, gfcfg, RootKey, DefaultCfgKey)
+		err := validateCfgFromGfCfg(__defaultCfg, baseDfCfg, gfcfg, RootKey, DefaultCfgKey)
 		if err != nil {
 			syslog.Fatalf("readCfgFromYaml failed from %s:\n validate '%s' cfg failed:\n %s", file_, DefaultCfgKey, err.Error())
 		}

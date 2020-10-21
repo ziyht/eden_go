@@ -87,4 +87,10 @@ func TestYmlLogger(t *testing.T){
 	log.Infof ("inf")
 	log.Warnf ("wrn")
 	log.Errorf("err")
+
+	log = Logger( "not_have", "log3").Log(Tag("[log3]"))
+	log.Debugf("dbg")
+	log.Infof ("inf")
+	log.Warnf ("wrn")
+	log.Errorf("err")
 }
