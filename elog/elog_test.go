@@ -15,25 +15,25 @@ func Test_SysLog(t *testing.T){
 
 func TestDfLogger(t *testing.T){
 
-	log := DfLog()
+	log := Log()
 	log.Debugf("dbg")
 	log.Infof ("inf")
 	log.Warnf ("wrn")
 	log.Errorf("err")
 
-	log = GetLog(Filename("test"))
+	log = Log(Filename("test"))
 	log.Debugf("dbg")
 	log.Infof ("inf")
 	log.Warnf ("wrn")
 	log.Errorf("err")
 
-	log = GetLog(Filename("test"))
+	log = Log(Filename("test"))
 	log.Debugf("dbg")
 	log.Infof ("inf")
 	log.Warnf ("wrn")
 	log.Errorf("err")
 
-	log = GetLog(Filename("test")).Named("[test]")
+	log = Log(Filename("test")).Named("[test]")
 	log.Debugf("dbg")
 	log.Infof ("inf")
 	log.Warnf ("wrn")
@@ -46,43 +46,43 @@ func TestYmlLogger(t *testing.T){
 
 	InitFromYml("../config/elog.yml")
 
-	log := DfLog()
+	log := Log()
 	log.Debugf("dbg")
 	log.Infof ("inf")
 	log.Warnf ("wrn")
 	log.Errorf("err")
 
-	log = GetLog()
+	log = Log()
 	log.Debugf("dbg")
 	log.Infof ("inf")
 	log.Warnf ("wrn")
 	log.Errorf("err")
 
-	log = GetLog(Tag("[test1]"))
+	log = Log(Tag("[test1]"))
 	log.Debugf("dbg")
 	log.Infof ("inf")
 	log.Warnf ("wrn")
 	log.Errorf("err")
 
-	log = GetLog(Filename("test1"))
+	log = Log(Filename("test1"))
 	log.Debugf("dbg")
 	log.Infof ("inf")
 	log.Warnf ("wrn")
 	log.Errorf("err")
 
-	log = GetLogger("log1").GetLog(Tag("[log1]"))
+	log = Logger("log1").Log(Tag("[log1]"))
 	log.Debugf("dbg")
 	log.Infof ("inf")
 	log.Warnf ("wrn")
 	log.Errorf("err")
 
-	log = GetLogger("log2").GetLog(Tag("[log2]"))
+	log = Logger("log2").Log(Tag("[log2]"))
 	log.Debugf("dbg")
 	log.Infof ("inf")
 	log.Warnf ("wrn")
 	log.Errorf("err")
 
-	log = GetLogger("log3").GetLog(Tag("[log3]"))
+	log = Logger("log3").Log(Tag("[log3]"))
 	log.Debugf("dbg")
 	log.Infof ("inf")
 	log.Warnf ("wrn")
