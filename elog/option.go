@@ -1,38 +1,74 @@
 package elog
 
+import "go.uber.org/zap/zapcore"
+
+type Level = zapcore.Level
+
+const (
+	DebugLevel = zapcore.DebugLevel
+	InfoLevel  = zapcore.InfoLevel
+	WarnLevel  = zapcore.WarnLevel
+	ErrorLevel = zapcore.ErrorLevel
+	FatalLevel = zapcore.FatalLevel
+	PanicLevel = zapcore.PanicLevel
+)
+
 type option struct {
-	filename    string
-	filenameSet bool
-	tag         string
-	tagSet      bool
+	filename     	string
+	filenameSet  	bool
+	tag          	string
+	tagSet       	bool
+	consoleLevel 	Level
+	consoleLevelSet bool
+	fileLevel    	Level
+	fileLevelSet    bool
+	noConsole       bool
+	noConsoleSet    bool
 }
 
 type optionFunc func(*option)
-func (opf optionFunc) apply(op *option) {
-	opf(op)
+func (update optionFunc) apply(op *option) {
+	update(op)
 }
 
-type Option interface {
-	apply(op *option)
+func newOption(cfg *Cfg, options... Option) *option {
+
+	var op option
+
+	op._updateFromOptions(options...)
+	op._updateFromCfg(cfg)
+
+	return &op
 }
 
-func Tag(tag string) Option{
-	return optionFunc(func(op *option) {
-		op.tagSet = true
-		op.tag    = tag
-	})
+func (opt *option)needConsole() bool {
+
+	if opt.noConsoleSet{
+		if opt.noConsole {
+			return false
+		}
+	}
+
+	return true
 }
 
-//    <HOSTNAME> -> hostname of current machine
-//    <APP_NAME> -> binary file name of current application
-//    <LOG_NAME> -> the name of current logger, in __default, it will set to elog
-func Filename(filename string) Option{
-	return optionFunc(func(op *option) {
-		op.filenameSet = true
-		op.filename    = filename
-	})
+func (opt *option)_updateFromOptions(options... Option){
+	for _, option := range options{
+		option.apply(opt)
+	}
 }
 
-func NoFile() Option{
-	return Filename("")
+func (opt *option)_updateFromCfg(cfg *Cfg){
+
+	if !opt.consoleLevelSet {
+		opt.consoleLevel = cfg.consoleLevel
+	}
+
+	if !opt.fileLevelSet {
+		opt.fileLevel = cfg.fileLevel
+	}
+
+	if !opt.filenameSet {
+		opt.filename = cfg.FileName
+	}
 }

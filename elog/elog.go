@@ -1,6 +1,7 @@
 package elog
 
 import (
+	"fmt"
 	"github.com/natefinch/lumberjack"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -161,21 +162,14 @@ func (l *Elogger)Log(options ...Option) Elog {
 	var logger *zap.Logger
 	var path string
 
-	var opt option
-	for _, op := range options{
-		op.apply(&opt)
-	}
+	opt := newOption(l.cfg, options...)
 
 	var cores []zapcore.Core
 
 	// setting output file core if needed
 	{
 		var filename string
-		if opt.filenameSet {
-			filename = opt.filename			// set filename from param
-		} else {
-			filename = l.cfg.FileName		// get default filename set by cfg
-		}
+		filename = opt.filename
 
 		if filename != "" {
 			filename = getRepresentPathValue(filename, l.name)
@@ -188,11 +182,13 @@ func (l *Elogger)Log(options ...Option) Elog {
 				path = filepath.Join(l.cfg.Dir, l.cfg.Group, filename+ ".log")
 			}
 
-			cores = append(cores, l.getFileCore(path))
+			cores = append(cores, l.getFileCore(path, opt))
 		}
 	}
 
-	cores = append(cores, l.getConsoleCore("stdout"))
+	if opt.needConsole(){
+		cores = append(cores, l.getConsoleCore("stdout", opt))
+	}
 
 	logger = zap.New(zapcore.NewTee(cores...), zap.AddStacktrace(l.cfg.stackLevel))
 
@@ -203,50 +199,54 @@ func (l *Elogger)Log(options ...Option) Elog {
 	return logger.Sugar()
 }
 
-func (l *Elogger)getConsoleCore(name string) zapcore.Core{
+func (l *Elogger)getConsoleCore(stream string, opt *option) zapcore.Core{
 
-	switch name {
+	switch stream {
 		case "stdout": break
 		case "stderr": break
 		default:
-			name = "stdout"
-			syslog.Warnf("invalid name '%s', only support stdout and stderr, set to stdout", name)
+			stream = "stdout"
+			syslog.Warnf("invalid name '%s', only support stdout and stderr, set to stdout", stream)
 	}
 
-	consoleCore, exist := l.fileCores[name]
+	cacheKey := fmt.Sprintf("%s_%d", stream, opt.consoleLevel)
+
+	consoleCore, exist := l.consoleCores[cacheKey]
 	if !exist {
-		consoleCore = zapcore.NewCore(getEncoder(l.cfg.ConsoleColor), l.getConsoleWriter(name), l.cfg.consoleLevel)
-		l.fileCores[name] = consoleCore
+		consoleCore = zapcore.NewCore(getEncoder(l.cfg.ConsoleColor), l.getConsoleWriter(stream), opt.consoleLevel)
+		l.consoleCores[cacheKey] = consoleCore
 	}
 
 	return consoleCore
 }
 
-func (l *Elogger)getConsoleWriter(name string) zapcore.WriteSyncer {
+func (l *Elogger)getConsoleWriter(stream string) zapcore.WriteSyncer {
 
-	consoleWriter, exist := l.consoleWriters[name]
+	consoleWriter, exist := l.consoleWriters[stream]
 	if !exist {
-		switch name {
+		switch stream {
 			case "stdout":  consoleWriter = zapcore.AddSync(os.Stdout)
 							break
 			case "stderr":  consoleWriter = zapcore.AddSync(os.Stderr)
 							break
 			default:
-				name = "stdout"
+				stream = "stdout"
 				consoleWriter = zapcore.AddSync(os.Stdout)
-				syslog.Warnf("invalid name '%s', only support stdout and stderr, set to stdout", name)
+				syslog.Warnf("invalid name '%s', only support stdout and stderr, set to stdout", stream)
 		}
-		l.consoleWriters[name] = consoleWriter
+		l.consoleWriters[stream] = consoleWriter
 	}
 
 	return consoleWriter
 }
 
-func (l *Elogger)getFileCore(path string) zapcore.Core{
-	fileCore, exist := l.fileCores[path]
+func (l *Elogger)getFileCore(path string, opt *option) zapcore.Core{
+	cacheKey := fmt.Sprintf("%s_%d", path, opt.fileLevel)
+
+	fileCore, exist := l.fileCores[cacheKey]
 	if !exist {
-		fileCore = zapcore.NewCore(getEncoder(l.cfg.FileColor), l.getFileWriter(path), l.cfg.fileLevel)
-		l.fileCores[path] = fileCore
+		fileCore = zapcore.NewCore(getEncoder(l.cfg.FileColor), l.getFileWriter(path), opt.fileLevel)
+		l.fileCores[cacheKey] = fileCore
 	}
 
 	return fileCore
