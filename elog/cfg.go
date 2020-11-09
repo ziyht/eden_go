@@ -122,8 +122,6 @@ func readCfgFromYaml(file string) *Cfgs {
 		}
 	}
 
-	dfCfg = curDfCfg
-
 	return &cfgs
 }
 
