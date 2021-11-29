@@ -19,9 +19,9 @@ func TestLogLogic(t *testing.T) {
 
 	logger := Logger()
 
-	logger.Log(ConsoleLevel(DebugLevel))
-	logger.Log(ConsoleLevel(WarnLevel))
-	logger.Log(ConsoleLevel(DebugLevel))
+	logger.Log(ConsoleLevel(LEVEL_DEBUG))
+	logger.Log(ConsoleLevel(LEVEL_WARN))
+	logger.Log(ConsoleLevel(LEVEL_DEBUG))
 
 	if len(logger.consoleCores) != 2 {
 		t.Errorf("expect 2, got: %d", len(logger.consoleCores))
@@ -33,7 +33,7 @@ func TestLogLogic(t *testing.T) {
 	curFileCores   := len(logger.fileCores)
 	curFileWriters := len(logger.fileWriters)
 
-	logger.Log(FileLevel(FatalLevel))
+	logger.Log(FileLevel(LEVEL_FATAL))
 	if len(logger.fileCores) != curFileCores + 1 {
 		t.Errorf("expect %d, got %d", curFileCores + 1, len(logger.fileCores))
 	}
@@ -53,41 +53,53 @@ func TestLevelSetting(t *testing.T){
 	log.Errorf("should not output")
 
 	// test for console
-	log = Log(NoFile(), ConsoleLevel(DebugLevel))
+	log = Log(NoFile(), ConsoleLevel(LEVEL_DEBUG))
 	log.Debugf("should output")
 	log.Infof ("should output")
 	log.Warnf ("should output")
 	log.Errorf("should output")
 
-	log = Log(NoFile(), ConsoleLevel(InfoLevel))
+	log = Log(NoFile(), ConsoleLevel(LEVEL_INFO))
 	log.Debugf("should not output")
 	log.Infof ("should output")
 	log.Warnf ("should output")
 	log.Errorf("should output")
 
-	log = Log(NoFile(), ConsoleLevel(WarnLevel))
+	log = Log(NoFile(), ConsoleLevel(LEVEL_WARN))
 	log.Debugf("should not output")
 	log.Infof ("should not output")
 	log.Warnf ("should output")
+	log.Errorf("should output")
+
+	log = Log(NoFile(), ConsoleLevel(LEVEL_ERROR))
+	log.Debugf("should not output")
+	log.Infof ("should not output")
+	log.Warnf ("should not output")
 	log.Errorf("should output")
 
 	// test for file write
-	log = Log(Filename("level_test"), FileLevel(DebugLevel))
+	log = Log(Filename("level_debug_test"), FileLevel(LEVEL_DEBUG))
 	log.Debugf("should output")
 	log.Infof ("should output")
 	log.Warnf ("should output")
 	log.Errorf("should output")
 
-	log = Log(Filename("level_test"), FileLevel(InfoLevel))
+	log = Log(Filename("level_info_test"), FileLevel(LEVEL_INFO))
 	log.Debugf("should not output")
 	log.Infof ("should output")
 	log.Warnf ("should output")
 	log.Errorf("should output")
 
-	log = Log(Filename("level_test"), FileLevel(WarnLevel))
+	log = Log(Filename("level_warn_test"), FileLevel(LEVEL_WARN))
 	log.Debugf("should not output")
 	log.Infof ("should not output")
 	log.Warnf ("should output")
+	log.Errorf("should output")
+
+	log = Log(Filename("level_error_test"), FileLevel(LEVEL_WARN))
+	log.Debugf("should not output")
+	log.Infof ("should not output")
+	log.Warnf ("should not output")
 	log.Errorf("should output")
 }
 

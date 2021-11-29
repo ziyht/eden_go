@@ -32,6 +32,13 @@ func FileLevel(level Level) Option {
 	})
 }
 
+func FileStackLevel(level Level) Option{
+		return optionFunc(func(op *option) {
+		op.fileStackLevelSet = true
+		op.fileStackLevel    = level
+	})
+}
+
 func ConsoleLevel(level Level) Option{
 	return optionFunc(func(op *option) {
 		op.consoleLevelSet = true
@@ -40,8 +47,15 @@ func ConsoleLevel(level Level) Option{
 }
 
 func NoConsole() Option {
+	return ConsoleLevel(LEVEL_NONE)
+}
+
+func ConsoleStackLevel(level Level) Option{
 	return optionFunc(func(op *option) {
-		op.noConsoleSet = true
-		op.noConsole    = true
+		op.consoleStackLevelSet = true
+		op.consoleStackLevel    = level
 	})
 }
+
+
+
