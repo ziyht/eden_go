@@ -34,7 +34,7 @@ func initSyslog() {
 
 	opt := newOption(&syslogCfg)
 
-	coreConsole := zapcore.NewCore(getEncoder(true), zapcore.AddSync(os.Stdout), zapcore.Level(opt.consoleLevel))
+	coreConsole := zapcore.NewCore(getEncoder(true, opt.consoleStackLevel), zapcore.AddSync(os.Stdout), zapcore.Level(opt.consoleLevel))
 	logger := zap.New(zapcore.NewTee(coreConsole), zap.AddStacktrace(zapcore.Level(opt.consoleStackLevel))).Named("[ELOG]")
 	syslog = logger.Sugar()
 }

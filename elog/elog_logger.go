@@ -96,11 +96,11 @@ func (l *Elogger)getLog(options ...Option) Elog {
 }
 
 func (l *Elogger)getConsoleCore(fd int, opt *option) zapcore.Core{
-	return zapcore.NewCore(getEncoder(opt.consoleColor), getConsoleWriter(fd), zapcore.Level(opt.consoleLevel))
+	return zapcore.NewCore(getEncoder(opt.consoleColor, opt.consoleStackLevel), getConsoleWriter(fd), zapcore.Level(opt.consoleLevel))
 }
 
 func (l *Elogger)getFileCore(path string, opt *option) zapcore.Core{
-	return zapcore.NewCore(getEncoder(l.cfg.FileColor), getFileWriter(path, l.cfg), zapcore.Level(opt.fileLevel))
+	return zapcore.NewCore(getEncoder(l.cfg.FileColor, opt.fileStackLevel), getFileWriter(path, l.cfg), zapcore.Level(opt.fileLevel))
 }
 
 func initDfLogger(cfg *Cfg) {
