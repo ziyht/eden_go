@@ -3,30 +3,33 @@
 # Tag representation for dir, group, filename
 #    <HOSTNAME> -> hostname of current machine
 #    <APP_NAME> -> binary file name of current application
-#    <LOG_NAME> -> the name of current logger, in __default, it will set to elog
+#    <LOG_NAME> -> the name of current logger, in default cfg, it will set to elog
+#
+#  note: 
+#    1. the key like 'dir', 'group', ... under elog directly is to set default value,
+#       you do not need to set it because all of them have a default value inside
+#    2. for 'level', 'stack_level', 'color' you set only one val for console and file
+#       settings, or you can set a arr with two val to set config for console and file
+#       respectively 
+#
 
 elog:
-  __default:                          # default setting for all logs
-    dir          : var/log                 # default var/log
-    group        : <HOSTNAME>              # default <HOSTNAME>, if set, real dir will be $Dir/$Group
-    filename     : <LOG_NAME>              # default <LOG_NAME>, will not write to file if set empty, real file path will be $Dir/$Group/$File
-    max_size     : 100                     # default 100, unit MB
-    max_backups  : 7                       # default 7
-    max_age      : 7                       # default 7
-    compress     : true                    # default true
-    console_level: info                    # default debug     [debug, info, warn, error, fatal, panic]
-    console_color: true                    # default true
-    file_level   : debug                   # default debug     [debug, info, warn, error, fatal, panic]
-    file_color   : false                   # default false
-    stack_level  : error                   # default warn      [debug, info, warn, error, fatal, panic], base stack level
+  dir           : logs                    # default logs
+  group         : <HOSTNAME>              # default <HOSTNAME>, if set, real dir will be $Dir/$Group
+  filename      : <LOG_NAME>              # default <LOG_NAME>, will not write to file if set empty, real file path will be $Dir/$Group/$File
+  max_size      : 100                     # default 100, unit MB
+  max_backups   : 7                       # default 7
+  max_age       : 7                       # default 7
+  compress      : false                   # default false
+  level         : [info,  debug]          # default info , debug, [0] for console, [1] for file, valid value is [debug, info, warn, error, fatal, panic]
+  stack_level   : [fatal, warn ]          # default fatal, warn , [0] for console, [1] for file, valid value is [debug, info, warn, error, fatal, panic]
+  color         : [true,  false]          # default true , true , [0] for console, [1] for file
 
-  log1:
-    group   : ""
-    filename: log1                         # it will set from __default if not set and will no write to file if set empty
+  nofile: 
+    filename: ""
 
-  log2:
-    filename: log2
+  setfile: {}
 
-  log3:
-
+  level_debug:
+    level   : debug
 

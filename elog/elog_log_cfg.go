@@ -2,56 +2,59 @@ package elog
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"github.com/spf13/viper"
-	"gopkg.in/yaml.v2"
 )
 
-const SampleCfg =
+const sampleCfg =
 `
-#
 # Tag representation for dir, group, filename
 #    <HOSTNAME> -> hostname of current machine
 #    <APP_NAME> -> binary file name of current application
-#    <LOG_NAME> -> the name of current logger, in __default, it will set to ""
-# Note:
-#   
+#    <LOG_NAME> -> the name of current logger, in default cfg, it will set to elog
+#
+#  note: 
+#    1. the key like 'dir', 'group', ... under elog directly is to set default value,
+#       you do not need to set it because all of them have a default value inside
+#    2. for 'level', 'stack_level', 'color' you set only one val for console and file
+#       settings, or you can set a arr with two val to set config for console and file
+#       respectively 
 #
 
 elog:
-  __default:                          # default setting for all logs 
-    dir          : 'var/log'               # default var/log
-    group        : '<HOSTNAME>'            # default <HOSTNAME>, if set, real dir will be $Dir/$Group
-    filename     : '<LOG_NAME>'            # default <LOG_NAME>, will not write to file if set empty, real file path will be $Dir/$Group/$File.log, if not set, logs will not be written
-    max_size     : 100                     # default 100, unit MB
-    max_backups  : 7                       # default 7
-    max_age      : 7                       # default 7
-    compress     : false                   # default true
-		log_level    : ['info' , 'debug']      # [0] for console, [1] for file, you can set [debug, info, warn, error, fatal, panic]
-		log_stack    : ['fatal', 'error']      # [0] for console, [1] for file, you can set [debug, info, warn, error, fatal, panic]
-		log_color    : [ true  , true   ]      # [0] for console, [1] for file
+  dir           : logs                    # default logs
+  group         : <HOSTNAME>              # default <HOSTNAME>, if set, real dir will be $Dir/$Group
+  filename      : <LOG_NAME>              # default <LOG_NAME>, will not write to file if set empty, real file path will be $Dir/$Group/$File
+  max_size      : 100                     # default 100, unit MB
+  max_backups   : 7                       # default 7
+  max_age       : 7                       # default 7
+  compress      : false                   # default false
+  level         : [info,  debug]          # default info , debug, [0] for console, [1] for file, valid value is [debug, info, warn, error, fatal, panic]
+  stack_level   : [fatal, warn ]          # default fatal, warn , [0] for console, [1] for file, valid value is [debug, info, warn, error, fatal, panic]
+  color         : [true,  false]          # default true , true , [0] for console, [1] for file
 
   log1:
     group   : ""
-    filename: log1                         # it will set from __default 
+    filename: log1                         # it will set from __default if not set and will no write to file if set empty
 
   log2:
     filename: log2
 `
 
 const (
-	cfgRootKey    = "elog"          // root key in the config file for elog
-	cfgDefaultKey = "__default"     // key of default setting for each log
+	cfgRootKey     = "elog"          // root key in the config file for elog
+	cfgDefaultName = "__default"     // key of default setting for each log
+	
+	defaultFilename = "elog"
 
 	defaultTag = ""
-	syslogTag  = "elog"
 )
 
-// dfCfg the default config for elog, note: it can be reset by config file by key set in cfgDefaultKey
 var (
 	dfCfg       = *genDfCfg()
 	appName     = AppName()
@@ -83,6 +86,12 @@ type rootCfg struct {
 	Cfgs map[string]*Cfg  `yaml:"elog"`
 }
 
+func (c *Cfg)Clone(newName string) (*Cfg){
+	out := *c
+	out.name = newName
+	return &out 
+}
+
 func genDfCfg() *Cfg {
 	return &Cfg{
 		Dir              : "logs",
@@ -98,7 +107,7 @@ func genDfCfg() *Cfg {
 		FileColor        : true,
 		FileStackLevel   : LEVELS_WARN,
 		Compress         : false,
-		name             : cfgDefaultKey,
+		name             : cfgDefaultName,
 	}
 }
 
@@ -130,13 +139,23 @@ func (cfg *Cfg)checkFileRotate() (err error) {
 	return
 }
 
-func (cfg *Cfg)validate(){
+func (cfg *Cfg)validate() (err error){
+
 	if cfg.MaxSize    < 0 { cfg.MaxSize    = 0 }
 	if cfg.MaxBackups < 0 { cfg.MaxBackups = 0 }
 	if cfg.MaxAge     < 0 { cfg.MaxAge     = 0 }
 
-	cfg.logDir = getRepresentPathValue(cfg.Dir + "/" + cfg.Group, cfg.name)
-	cfg.path   = getRepresentPathValue(cfg.logDir + "/" + cfg.FileName, cfg.name)
+	logDir := path.Join(cfg.Dir   , cfg.Group) 
+	path   := path.Join(cfg.logDir, cfg.FileName)
+
+	if cfg.logDir, err = filepath.Abs(logDir); err != nil {
+		return fmt.Errorf("do Abs() for logDir '%s' failed: %s", logDir, err)
+	}
+	if cfg.path, err = filepath.Abs(path); err != nil {
+		return fmt.Errorf("do Abs() for path '%s' failed: %s", logDir, err)
+	}
+
+	return
 }
 
 func (cfg *Cfg)checkAndValidate()(err error) {
@@ -158,102 +177,180 @@ func (cfg *Cfg)validateAndCheck()(err error) {
 	return 
 }
 
-func readCfgFromYaml(file string) *rootCfg {
+func readCfgFromFile(file string) (cfgs *rootCfg) {
+
+	path, err := filepath.Abs(file); 
+	if err != nil {
+		syslog.Fatalf("readCfgFromFile failed from file '%s':\n %s", file, err)
+	}
+
+	ext := filepath.Ext(path)
+	if len(ext) > 1 {
+		ext = ext[1:]
+	} else {
+		syslog.Fatalf("readCfgFromFile failed from file '%s':\n can not found ext in file like .yml .ini ...", file)
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+	 	syslog.Fatalf("readCfgFromFile failed from file '%s':\n %s", file, err)
+	}
+
+	if cfgs, err = parsingCfgsFromStr(string(data), ext); err != nil {
+		syslog.Fatalf("readCfgFromFile failed from file '%s':\n %s", file, err)
+	}
+
+	return cfgs
+}
+
+func parsingCfgsFromStr(content string, ext string) (*rootCfg, error) {
+
+	cfgs := rootCfg{ map[string]*Cfg{} }
 
 	v := viper.New()
-	v.SetConfigFile(file)
-	err := v.ReadInConfig()
-	if err != nil {
-		syslog.Fatalf("readCfgFromYaml failed from %s:\n %s", file, err.Error())
+	v.SetConfigType(ext)
+	if err := v.ReadConfig(strings.NewReader(string(content))); err != nil {
+		return nil, fmt.Errorf("parsing failed: %s", err)
 	}
 
-	var cfgs rootCfg
-
-	file_, err := filepath.Abs(file)
-	if err != nil {
-		syslog.Fatalf("readCfgFromYaml failed from %s:\n %s", file, err.Error())
+	rootObj := v.Get(cfgRootKey)
+	if rootObj == nil {
+		return &cfgs, nil
 	}
 
-	yamlFile, err := ioutil.ReadFile(file_)
-	if err != nil {
-		syslog.Fatalf("readCfgFromYaml failed from %s:\n %s", file_, err.Error())
+	root, ok := rootObj.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid type of '.%s' in config file", cfgRootKey)
 	}
 
-	err = yaml.UnmarshalStrict(yamlFile, &cfgs)
-	if err != nil {
-		syslog.Fatalf("readCfgFromYaml failed from %s:\n Unmarshal failed:\n %s", file_, err.Error())
+	// parsing default cfg
+	tmpDfCfg, err := parsingCfg(&dfCfg, v, cfgRootKey, "")
+	if err != nil{
+		return nil, fmt.Errorf("parsing default cfg failed:\n %s", err)
 	}
 
-
-	// parsing __default cfg
-	{
-		// generate default config if not set
-		if _, ok := cfgs.Cfgs[cfgDefaultKey]; !ok {
-			cfgs.Cfgs[cfgDefaultKey] = genDfCfg()
-		}
-		__dfCfg := cfgs.Cfgs[cfgDefaultKey]
-
-		err := validateCfg(__dfCfg, &dfCfg, v, cfgRootKey, cfgDefaultKey)
-		if err != nil {
-			syslog.Fatalf("readCfgFromYaml failed from %s:\n validate '%s' cfg failed:\n %s", file_, cfgDefaultKey, err.Error())
-		}
-	}
-
-	curDfCfg := cfgs.Cfgs[cfgDefaultKey]
-
-	for name, curcfg := range cfgs.Cfgs {
-
-		if name == cfgDefaultKey {
+	// parsing cfgs 
+	for key, val := range root {
+		if _, ok := val.(map[string]interface{}); !ok{
 			continue
 		}
-
-		if curcfg == nil {
-			curcfg = &Cfg{}
-			cfgs.Cfgs[name] = curcfg
-		}
-
-		err := validateCfg(curcfg, curDfCfg, v, cfgRootKey, name)
+		tmpCfg, err := parsingCfg(tmpDfCfg, v, cfgRootKey, key)
 		if err != nil {
-			syslog.Fatalf("readCfgFromYaml failed from %s:\n validate '%s' cfg failed:\n %s", file_, name, err.Error())
+			return nil, fmt.Errorf("parsing cfg for '%s' failed:\n %s", key, err)
+		}
+		
+		cfgs.Cfgs[key] = tmpCfg
+	}
+
+	dfCfg = *tmpDfCfg
+	dfCfg.name = cfgDefaultName
+
+	return &cfgs, nil
+}
+
+func parsingCfg(dfCfg *Cfg, v *viper.Viper, rootKey string, curKey string) (cfg *Cfg, err error) {
+
+	if curKey != "" { curKey += "." }
+
+	cfg = dfCfg.Clone(curKey)
+
+	dirPath 		     	:= rootKey + "." + curKey + "dir"
+	groupPath 	     	:= rootKey + "." + curKey + "group"
+	filenamePath	    := rootKey + "." + curKey + "filename"
+	maxsizePath       := rootKey + "." + curKey + "max_size"
+	maxBackupsPath    := rootKey + "." + curKey + "max_backups"
+	maxAgePath        := rootKey + "." + curKey + "max_age"
+	compressPath      := rootKey + "." + curKey + "compress"
+	levelPath         := rootKey + "." + curKey + "level"
+	stackLevelPath    := rootKey + "." + curKey + "stack_level"
+	colorPath         := rootKey + "." + curKey + "color"
+
+	if v.IsSet(dirPath)  			 {cfg.Dir,     _, err = getMultiStringFromObj(v.Get(dirPath)     ); if err != nil {return nil, fmt.Errorf("parsing dir failed: %s", err)}}
+	if v.IsSet(groupPath)			 {cfg.Group,   _, err = getMultiStringFromObj(v.Get(groupPath)   ); if err != nil {return nil, fmt.Errorf("parsing group failed: %s", err)}}
+	if v.IsSet(filenamePath)	 {cfg.FileName,_, err = getMultiStringFromObj(v.Get(filenamePath)); if err != nil {return nil, fmt.Errorf("parsing filename failed: %s", err)}}
+	if v.IsSet(maxsizePath)		 {cfg.MaxSize   , err = getIntFromObj(v.Get(maxsizePath)   ); if err != nil { return nil, fmt.Errorf("parsing max_size failed: %s", err) } }
+	if v.IsSet(maxBackupsPath) {cfg.MaxBackups, err = getIntFromObj(v.Get(maxBackupsPath)); if err != nil { return nil, fmt.Errorf("parsing max_backups failed: %s", err) } }
+	if v.IsSet(maxAgePath)		 {cfg.MaxAge    , err = getIntFromObj(v.Get(maxAgePath)    ); if err != nil { return nil, fmt.Errorf("parsing max_age failed: %s", err) } }
+	if v.IsSet(compressPath)	 {cfg.Compress,_, err = getMultiBoolFromObj(v.Get(compressPath)); if err != nil { return nil, fmt.Errorf("parsing compress failed: %s", err) } }
+
+	var errs []string
+	
+	if v.IsSet(levelPath) {
+		if cfg.ConsoleLevel, cfg.FileLevel, err = getMultiStringFromObj(v.Get(levelPath)); err != nil {
+			errs = append(errs, fmt.Sprintf("parsing level failed: %s", err))
+		}
+	}
+	if v.IsSet(stackLevelPath) {
+		if cfg.ConsoleStackLevel, cfg.FileStackLevel, err = getMultiStringFromObj(v.Get(stackLevelPath)); err != nil {
+			errs = append(errs, fmt.Sprintf("parsing stack_level failed: %s", err))
+		}
+	}
+	if v.IsSet(colorPath) {
+		if cfg.ConsoleColor, cfg.FileColor, err = getMultiBoolFromObj(v.Get(colorPath)); err != nil {
+			errs = append(errs, fmt.Sprintf("parsing color failed: %s", err))
 		}
 	}
 
-	return &cfgs
+	if len(errs) > 0 {
+		err = fmt.Errorf("%s", strings.Join(errs, " | "))
+		return nil, err
+	}
+	if err = cfg.checkAndValidate(); err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
 }
 
-func validateCfg(dest *Cfg, dfCfg *Cfg, v *viper.Viper, rootKey string, curKey string) error {
+func getIntFromObj(obj interface{}) (val int, err error) {
 
-	dirCfgPattern 		     	 := rootKey + "." + curKey + ".dir"
-	groupCfgPattern 	     	 := rootKey + "." + curKey + ".group"
-	filenameCfgPattern 	     := rootKey + "." + curKey + ".filename"
-	maxsizeCfgPattern        := rootKey + "." + curKey + ".max_size"
-	maxBackupsCfgPattern     := rootKey + "." + curKey + ".max_backups"
-	maxAgeCfgPattern         := rootKey + "." + curKey + ".max_age"
-	consoleLevelCfgPattern   := rootKey + "." + curKey + ".console_level"
-	consoleColorCfgPattern 	 := rootKey + "." + curKey + ".console_color"
-	consoleStackLevelPattern := rootKey + "." + curKey + ".console_stack_level"
-	fileLevelCfgPattern    	 := rootKey + "." + curKey + ".file_level"
-	fileColorCfgPattern      := rootKey + "." + curKey + ".file_color"
-	fileStackLevelCfgPattern := rootKey + "." + curKey + ".file_stack_level"
-	compressCfgPattern       := rootKey + "." + curKey + ".compress"
-
-	if !v.IsSet(dirCfgPattern)  					{ dest.Dir   						 = dfCfg.Dir }
-	if !v.IsSet(groupCfgPattern)					{ dest.Group 						 = dfCfg.Group }
-	if !v.IsSet(filenameCfgPattern)				{ dest.FileName 				 = dfCfg.FileName }
-	if !v.IsSet(maxsizeCfgPattern)				{ dest.MaxSize 					 = dfCfg.MaxSize  }
-	if !v.IsSet(maxBackupsCfgPattern)			{ dest.MaxBackups 			 = dfCfg.MaxBackups }
-	if !v.IsSet(maxAgeCfgPattern)					{ dest.MaxAge 					 = dfCfg.MaxAge }
-	if !v.IsSet(consoleLevelCfgPattern)		{ dest.ConsoleLevel 		 = dfCfg.ConsoleLevel }
-	if !v.IsSet(consoleColorCfgPattern)		{ dest.ConsoleColor 		 = dfCfg.ConsoleColor }
-	if !v.IsSet(consoleStackLevelPattern)	{ dest.ConsoleStackLevel = dfCfg.ConsoleStackLevel }
-	if !v.IsSet(fileLevelCfgPattern)			{ dest.FileLevel 			   = dfCfg.FileLevel }
-	if !v.IsSet(fileColorCfgPattern)			{ dest.FileColor 			   = dfCfg.FileColor  }
-	if !v.IsSet(fileStackLevelCfgPattern)	{ dest.FileStackLevel    = dfCfg.FileStackLevel }
-	if !v.IsSet(compressCfgPattern)				{ dest.Compress 			   = dfCfg.Compress }
-
-	return dest.checkAndValidate()
+	if v, ok := obj.(int); ok {
+		return v, nil
+	}
+	return 0, fmt.Errorf("invalid type: %s", reflect.TypeOf(obj))
 }
 
+func getMultiStringFromObj(obj interface{}) (s1 string, s2 string, err error) {
+	switch obj := obj.(type) {
+  case string: return obj, obj, nil
+	case []interface{}: 
+		if len(obj) == 0 { return "", "", fmt.Errorf("val not set")
+	  } else {
+			obj = append(obj, obj[0])
+			var v1, v2 string; var ok bool
+			if v1, ok = obj[0].(string); !ok {
+				return "", "", fmt.Errorf("invalid type of [0]: %s", reflect.TypeOf(obj[0]))
+			}
+			if v2, ok = obj[1].(string); !ok {
+				return "", "", fmt.Errorf("invalid type of [1]: %s", reflect.TypeOf(obj[0]))
+			}
+			return v1, v2, nil
+		}
+  }  
+
+	return "", "", fmt.Errorf("invalid type: %s", reflect.TypeOf(obj))
+}
+
+func getMultiBoolFromObj(obj interface{}) (b1 bool, b2 bool, err error) {
+	switch obj := obj.(type) {
+  case bool: return obj, obj, nil
+	case []interface{}: 
+		if len(obj) == 0 { return false, false, fmt.Errorf("val not set")
+	  } else {
+			obj = append(obj, obj[0])
+			var v1, v2 bool; var ok bool
+			if v1, ok = obj[0].(bool); !ok {
+				return false, false, fmt.Errorf("invalid type of [0]: %s", reflect.TypeOf(obj[0]))
+			}
+			if v2, ok = obj[1].(bool); !ok {
+				return false, false, fmt.Errorf("invalid type of [1]: %s", reflect.TypeOf(obj[0]))
+			}
+			return v1, v2, nil
+		}
+  }  
+
+	return false, false, fmt.Errorf("invalid type: %s", reflect.TypeOf(obj))
+}
 
 func getRepresentPathValue(path string, name string) string {
 
@@ -264,8 +361,8 @@ func getRepresentPathValue(path string, name string) string {
 	path = strings.ReplaceAll(path, "<HOSTNAME>", hostname)
 	path = strings.ReplaceAll(path, "<APP_NAME>", appName)
 
-	if name == cfgDefaultKey {
-		path = strings.ReplaceAll(path, "<LOG_NAME>", defaultTag)
+	if name == cfgDefaultName {
+		path = strings.ReplaceAll(path, "<LOG_NAME>", defaultFilename)
 	} else {
 		path = strings.ReplaceAll(path, "<LOG_NAME>", name)
 	}

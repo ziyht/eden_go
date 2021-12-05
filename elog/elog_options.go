@@ -4,13 +4,6 @@ type Option interface {
 	apply(op *option)
 }
 
-func Tag(tag string) Option{
-	return optionFunc(func(op *option) {
-		op.tagSet = true
-		op.tag    = tag
-	})
-}
-
 //    <HOSTNAME> -> hostname of current machine
 //    <APP_NAME> -> binary file name of current application
 //    <LOG_NAME> -> the name of current logger, in __default, it will set to elog
@@ -23,6 +16,10 @@ func Filename(filename string) Option{
 
 func NoFile() Option{
 	return Filename("")
+}
+
+func NoConsole() Option {
+	return ConsoleLevel(LEVEL_NONE)
 }
 
 func FileLevel(level Level) Option {
@@ -44,10 +41,6 @@ func ConsoleLevel(level Level) Option{
 		op.consoleLevelSet = true
 		op.consoleLevel    = level
 	})
-}
-
-func NoConsole() Option {
-	return ConsoleLevel(LEVEL_NONE)
 }
 
 func ConsoleStackLevel(level Level) Option{

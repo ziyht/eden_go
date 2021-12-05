@@ -14,16 +14,11 @@ type Elogger struct {
 	name           string
 	cfg            *Cfg
 	option         *option
-	fileWriters    map[string]zapcore.WriteSyncer		// <path, WriteSyncer>
-	consoleWriters map[string]zapcore.WriteSyncer		// <name, WriteSyncer>
-
-	fileCores      map[string]zapcore.Core
-	consoleCores   map[string]zapcore.Core
 }
 
 var (
   dfLogger *Elogger
-	loggers  map[string]*Elogger
+	loggers  = map[string]*Elogger{}
 	mu       sync.Mutex
 )
 
@@ -36,26 +31,54 @@ func newElogger(name string, cfg* Cfg) *Elogger {
 	}
 
 	if _, exist := loggers[name]; exist {
-		syslog.Warnf("old logger named '%s' found, will be replace by new one")
+		syslog.Warnf("old logger named '%s' found, will be replace by new one", name)
 	}
+
+	out := genElogger(name, cfg)
+
+	loggers[name] = out
+
+	return out
+}
+
+func genElogger(name string, cfg *Cfg) *Elogger {
 
 	out := new(Elogger)
 
 	out.name           = name
 	out.cfg            = cfg
+	out.cfg.name       = name
 	out.option         = newOption(cfg)   // cfg checked earlier 
-	out.fileCores      = map[string]zapcore.Core{}
-	out.fileWriters    = map[string]zapcore.WriteSyncer{}
-	out.consoleCores   = map[string]zapcore.Core{}
-	out.consoleWriters = map[string]zapcore.WriteSyncer{}
-
-	if loggers == nil {
-		loggers = map[string]*Elogger{}
-	}
 
 	return out
 }
 
+func getLogger(name ...string) *Elogger {
+	if len(name) == 0 {
+		return dfLogger
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	dfSet := false
+
+	for _, _name := range name{
+		if logger, exist := loggers[_name]; exist {
+			return logger
+		}
+
+		if _name == "" {
+			dfSet = true
+		}
+	}
+
+	if dfSet {
+		return dfLogger
+	}
+
+	return nil
+}
 
 // GetLog ...
 // param is to set tag and filename, the first one is tag and second one is filename
@@ -80,6 +103,7 @@ func (l *Elogger)getLog(options ...Option) Elog {
 					path += ".log"
 				}
 			}
+			
 			path = getRepresentPathValue(path, l.name)
 			
 			cores = append(cores, l.getFileCore(path, opt))
@@ -107,11 +131,11 @@ func initDfLogger(cfg *Cfg) {
 
 	if cfg == nil {
 		if dfLogger == nil {
-			dfLogger = NewLogger(cfgDefaultKey, &dfCfg)
+			dfLogger = NewLogger(cfgDefaultName, &dfCfg)
 		}
 		return
 	}
 
-	dfLogger = NewLogger(cfgDefaultKey, cfg)
+	dfLogger = NewLogger(cfgDefaultName, cfg)
 	dfCfg = *cfg
 }

@@ -48,12 +48,14 @@ func (opt *option)applyOptions(options... Option)*option{
 }
 
 func (opt *option)applyCfg(cfg *Cfg)*option{
+
+	if !opt.filenameSet          { opt.filename     = cfg.FileName }
+
 	if !opt.consoleLevelSet      { opt.consoleLevel, _      = getLevelByStr(cfg.ConsoleLevel) }
 	if !opt.consoleStackLevelSet { opt.consoleStackLevel, _ = getLevelByStr(cfg.ConsoleStackLevel) }
 	if !opt.fileLevelSet         { opt.fileLevel, _         = getLevelByStr(cfg.FileLevel)}
 	if !opt.fileStackLevelSet    { opt.fileStackLevel, _    = getLevelByStr(cfg.FileStackLevel) }
 	
-	if !opt.filenameSet          { opt.filename     = cfg.FileName }
 	if !opt.fileColorSet         { opt.fileColor    = cfg.FileColor }
   if !opt.consoleColorSet      { opt.consoleColor = cfg.FileColor }
 

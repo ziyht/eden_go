@@ -1,15 +1,10 @@
 package elog
 
-import (
-	"os"
-
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
-)
-
 var (
 	syslogCfg = genSyslogCfg()
+	syslogger *Elogger
 	syslog Elog
+	syslogTag  = "[ELOG]"
 )
 
 func genSyslogCfg() Cfg {
@@ -20,21 +15,17 @@ func genSyslogCfg() Cfg {
 		MaxSize          : 0,
 		MaxBackups       : 0,
 		MaxAge           : 0,
-		ConsoleLevel     : LEVELS_DEBUG,
-		ConsoleColor     : true,
-		ConsoleStackLevel: LEVELS_DEBUG,
-		FileLevel        : "",
-		FileColor        : true,
-		FileStackLevel   : LEVELS_DEBUG,
 		Compress         : false,
+		ConsoleLevel     : LEVELS_DEBUG,
+		FileLevel        : LEVELS_DEBUG,
+		ConsoleStackLevel: LEVELS_DEBUG,
+		FileStackLevel   : LEVELS_DEBUG,
+		ConsoleColor     : true,
+		FileColor        : true,
 	}
 }
 
 func initSyslog() {
-
-	opt := newOption(&syslogCfg)
-
-	coreConsole := zapcore.NewCore(getEncoder(true, opt.consoleStackLevel), zapcore.AddSync(os.Stdout), zapcore.Level(opt.consoleLevel))
-	logger := zap.New(zapcore.NewTee(coreConsole), zap.AddStacktrace(zapcore.Level(opt.consoleStackLevel))).Named("[ELOG]")
-	syslog = logger.Sugar()
+  syslogger = genElogger("syslog", &syslogCfg)
+	syslog = syslogger.getLog().Named(syslogTag)
 }

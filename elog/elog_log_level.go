@@ -27,13 +27,13 @@ const (
 	LEVELS_DPANIC = "dpanic"
 	LEVELS_PANIC  = "panic"
 
-	LEVELT_DEBUG  = "debg"
-	LEVELT_INFO   = "info"
-	LEVELT_WARN   = "warn"
-	LEVELT_ERROR  = "erro"
-	LEVELT_FATAL  = "fata"
-	LEVELT_DPANIC = "dpan"
-	LEVELT_PANIC  = "pani"
+	LEVELT_DEBUG  = "DBG"
+	LEVELT_INFO   = "INF"
+	LEVELT_WARN   = "WRN"
+	LEVELT_ERROR  = "ERR"
+	LEVELT_FATAL  = "FTL"
+	LEVELT_DPANIC = "DPN"
+	LEVELT_PANIC  = "PNC"
 )
 
 var _levelTags = [...]string {
