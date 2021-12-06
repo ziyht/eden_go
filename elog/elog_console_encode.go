@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"eden/elog/internal/bufferpool"
+	"eden_go/elog/internal/bufferpool"
 
 	"go.uber.org/zap/buffer"
 	"go.uber.org/zap/zapcore"

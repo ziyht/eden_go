@@ -1,7 +1,7 @@
 package elog
 
 import (
-	"eden/elog"
+	"eden_go/elog"
 	"fmt"
 )
 

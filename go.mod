@@ -1,4 +1,4 @@
-module eden
+module eden_go
 
 go 1.14
 

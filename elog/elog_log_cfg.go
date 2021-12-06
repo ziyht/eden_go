@@ -3,6 +3,7 @@ package elog
 import (
 	"fmt"
 	"os"
+	"io/ioutil"
 	"path"
 	"path/filepath"
 	"reflect"
@@ -191,7 +192,7 @@ func readCfgFromFile(file string) (cfgs *rootCfg) {
 		syslog.Fatalf("readCfgFromFile failed from file '%s':\n can not found ext in file like .yml .ini ...", file)
 	}
 
-	data, err := os.ReadFile(path)
+	data, err := ioutil.ReadFile(path)
 	if err != nil {
 	 	syslog.Fatalf("readCfgFromFile failed from file '%s':\n %s", file, err)
 	}
