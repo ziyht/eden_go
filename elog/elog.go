@@ -37,6 +37,12 @@ func NewLogger(name string, cfg* Cfg) *Elogger {
 	return newElogger(name, cfg)
 }
 
+// SysLogger - returns the internal syslogger, you can using this to make Elog to logout before init logger operations
+//   - SysLogger do not write to file in default
+func SysLogger() *Elogger {
+	return syslogger
+}
+
 // Logger - get a logger by name
 //  - no name passed, it returned default logger
 //  - passed > 1, return the first match, and "" represent to default logger(lowest priority)
@@ -45,7 +51,9 @@ func Logger(name ...string) *Elogger {
 	return getLogger(name...)
 }
 
-// Log - get a log instance by a logger
+// Log - get a Elog instance by a logger
+//   - Elog is a typedef of *zap.SugaredLogger, so you can use Named() to set tags
+//   - every call will create a new instance, recommend cache it first and then use it
 func (l *Elogger)Log(options ...Option) Elog {
 	return l.getLog(options...)
 }

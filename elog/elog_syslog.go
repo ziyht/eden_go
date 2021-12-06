@@ -9,12 +9,12 @@ var (
 
 func genSyslogCfg() Cfg {
 	return Cfg{
-		Dir              : "",
-		Group            : "",
+		Dir              : "logs",
+		Group            : "<APP_NAME>",
 		FileName         : "",
-		MaxSize          : 0,
-		MaxBackups       : 0,
-		MaxAge           : 0,
+		MaxSize          : 100,
+		MaxBackups       : 7,
+		MaxAge           : 7,
 		Compress         : false,
 		ConsoleLevel     : LEVELS_DEBUG,
 		FileLevel        : LEVELS_DEBUG,
