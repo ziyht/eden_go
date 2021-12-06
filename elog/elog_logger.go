@@ -27,6 +27,7 @@ func newElogger(name string, cfg* Cfg) *Elogger {
 	defer mu.Unlock()
 
 	if err := cfg.validateAndCheck(); err != nil {
+		syslog.Fatalf("validateAndCheck cfg failed: %s", err)
 		return nil
 	}
 
@@ -48,7 +49,7 @@ func genElogger(name string, cfg *Cfg) *Elogger {
 	out.name           = name
 	out.cfg            = cfg
 	out.cfg.name       = name
-	out.option         = newOption(cfg)   // cfg checked earlier 
+	out.option         = newOpt().applyCfg(cfg)
 
 	return out
 }
@@ -83,12 +84,12 @@ func getLogger(name ...string) *Elogger {
 // GetLog ...
 // param is to set tag and filename, the first one is tag and second one is filename
 // if not set, it will using cfg in logger
-func (l *Elogger)getLog(options ...Option) Elog {
+func (l *Elogger)getLog(opts ...*option) Elog {
 
 	var logger *zap.Logger
 	var path string
 
-	opt := l.option.clone().applyOptions(options...)
+	opt := l.option.clone().applyOptions(opts...)
 	
 	var cores []zapcore.Core
 	cores = append(cores, l.getConsoleCore(1, opt))

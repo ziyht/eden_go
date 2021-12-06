@@ -18,8 +18,8 @@ func genSyslogCfg() Cfg {
 		Compress         : false,
 		ConsoleLevel     : LEVELS_DEBUG,
 		FileLevel        : LEVELS_DEBUG,
-		ConsoleStackLevel: LEVELS_DEBUG,
-		FileStackLevel   : LEVELS_DEBUG,
+		ConsoleStackLevel: LEVELS_WARN,
+		FileStackLevel   : LEVELS_WARN,
 		ConsoleColor     : true,
 		FileColor        : true,
 	}

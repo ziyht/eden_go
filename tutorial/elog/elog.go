@@ -2,10 +2,10 @@ package elog
 
 import "github.com/ziyht/eden_go/elog"
 
-var syslog = elog.Logger().Log(elog.NoFile()).Named("[SYSLOG]")
+var syslog = elog.Logger().Log(elog.Opt().NoFile()).Named("[SYSLOG]")
 
 func RunTutorail() {
-  //runDefaultTutotil()
-	runConfigTutotil()
+  runDefaultTutorial()
+	runConfigTutorial()
 }
 

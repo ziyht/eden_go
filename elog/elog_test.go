@@ -19,9 +19,9 @@ func TestLogLogic(t *testing.T) {
 
 	logger := Logger()
 
-	logger.Log(ConsoleLevel(LEVEL_DEBUG))
-	logger.Log(ConsoleLevel(LEVEL_WARN))
-	logger.Log(ConsoleLevel(LEVEL_DEBUG))
+	logger.Log(Opt().ConsoleLevel(LEVEL_DEBUG))
+	logger.Log(Opt().ConsoleLevel(LEVEL_WARN))
+	logger.Log(Opt().ConsoleLevel(LEVEL_DEBUG))
 
 	// if len(logger.consoleCores) != 2 {
 	// 	t.Errorf("expect 2, got: %d", len(logger.consoleCores))
@@ -46,61 +46,61 @@ func TestLevelSetting(t *testing.T){
 
 	os.Chdir("../")
 
-	log := Log(NoFile(), NoConsole())
+	log := Log(Opt().NoFile().NoConsole())
 	log.Debugf("should not output")
 	log.Infof ("should not output")
 	log.Warnf ("should not output")
 	log.Errorf("should not output")
 
 	// test for console
-	log = Log(NoFile(), ConsoleLevel(LEVEL_DEBUG))
+	log = Log(Opt().NoFile().ConsoleLevel(LEVEL_DEBUG))
 	log.Debugf("should output")
 	log.Infof ("should output")
 	log.Warnf ("should output")
 	log.Errorf("should output")
 
-	log = Log(NoFile(), ConsoleLevel(LEVEL_INFO))
+	log = Log(Opt().NoFile().ConsoleLevel(LEVEL_INFO))
 	log.Debugf("should not output")
 	log.Infof ("should output")
 	log.Warnf ("should output")
 	log.Errorf("should output")
 
-	log = Log(NoFile(), ConsoleLevel(LEVEL_WARN))
+	log = Log(Opt().NoFile().ConsoleLevel(LEVEL_WARN))
 	log.Debugf("should not output")
 	log.Infof ("should not output")
 	log.Warnf ("should output")
 	log.Errorf("should output")
 
-	log = Log(NoFile(), ConsoleLevel(LEVEL_ERROR))
+	log = Log(Opt().NoFile().ConsoleLevel(LEVEL_ERROR))
 	log.Debugf("should not output")
 	log.Infof ("should not output")
 	log.Warnf ("should not output")
 	log.Errorf("should output")
 
 	// test for file write
-	log = Log(Filename("level_debug_test"), FileLevel(LEVEL_DEBUG))
-	log.Debugf("should output")
-	log.Infof ("should output")
-	log.Warnf ("should output")
+	log = Log(Opt().FileName("level_debug_test").FileLevel(LEVEL_DEBUG))
+	log.Debugf("should write")
+	log.Infof ("should write")
+	log.Warnf ("should write")
+	log.Errorf("should write")
+
+	log = Log(Opt().FileName("level_info_test").FileLevel(LEVEL_INFO))
+	log.Debugf("should not write")
+	log.Infof ("should write")
+	log.Warnf ("should write")
+	log.Errorf("should write")
+
+	log = Log(Opt().FileName("level_warn_test").FileLevel(LEVEL_WARN))
+	log.Debugf("should not write")
+	log.Infof ("should not write")
+	log.Warnf ("should write")
 	log.Errorf("should output")
 
-	log = Log(Filename("level_info_test"), FileLevel(LEVEL_INFO))
-	log.Debugf("should not output")
-	log.Infof ("should output")
-	log.Warnf ("should output")
-	log.Errorf("should output")
-
-	log = Log(Filename("level_warn_test"), FileLevel(LEVEL_WARN))
-	log.Debugf("should not output")
-	log.Infof ("should not output")
-	log.Warnf ("should output")
-	log.Errorf("should output")
-
-	log = Log(Filename("level_error_test"), FileLevel(LEVEL_WARN))
-	log.Debugf("should not output")
-	log.Infof ("should not output")
-	log.Warnf ("should not output")
-	log.Errorf("should output")
+	log = Log(Opt().FileName("level_error_test").FileLevel(LEVEL_ERROR))
+	log.Debugf("should not write")
+	log.Infof ("should not write")
+	log.Warnf ("should not write")
+	log.Errorf("should write")
 }
 
 func TestDfLogger(t *testing.T){
@@ -113,19 +113,19 @@ func TestDfLogger(t *testing.T){
 	log.Warnf ("wrn")
 	log.Errorf("err")
 
-	log = Log(Filename("test"))
+	log = Log(Opt().FileName("test"))
 	log.Debugf("dbg")
 	log.Infof ("inf")
 	log.Warnf ("wrn")
 	log.Errorf("err")
 
-	log = Log(Filename("test"))
+	log = Log(Opt().FileName("test"))
 	log.Debugf("dbg")
 	log.Infof ("inf")
 	log.Warnf ("wrn")
 	log.Errorf("err")
 
-	log = Log(Filename("test")).Named("[test]")
+	log = Log(Opt().FileName("test")).Named("[test]")
 	log.Debugf("dbg")
 	log.Infof ("inf")
 	log.Warnf ("wrn")
@@ -136,7 +136,7 @@ func TestYmlLogger(t *testing.T){
 
 	os.Chdir("../")
 
-	InitFromFile("./config/elog.yml")
+	InitFromCfgFile("./config/elog.yml")
 
 	log := Log()
 	log.Debugf("dbg")
@@ -150,7 +150,7 @@ func TestYmlLogger(t *testing.T){
 	log.Warnf ("wrn")
 	log.Errorf("err")
 
-	log = Log(Filename("test1"))
+	log = Log(Opt().FileName("test1"))
 	log.Debugf("dbg")
 	log.Infof ("inf")
 	log.Warnf ("wrn")
