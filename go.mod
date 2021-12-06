@@ -1,4 +1,4 @@
-module eden_go
+module github.com/ziyht/eden_go
 
 go 1.14
 

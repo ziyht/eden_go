@@ -1,6 +1,6 @@
 package elog
 
-import "eden_go/elog"
+import "github.com/ziyht/eden_go/elog"
 
 var syslog = elog.Logger().Log(elog.NoFile()).Named("[SYSLOG]")
 

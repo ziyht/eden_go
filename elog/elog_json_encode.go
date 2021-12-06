@@ -8,7 +8,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-  "eden_go/elog/internal/bufferpool"
+  "github.com/ziyht/eden_go/elog/internal/bufferpool"
 
 	"go.uber.org/zap/buffer"
 	"go.uber.org/zap/zapcore"

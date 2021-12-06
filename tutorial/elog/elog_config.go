@@ -1,7 +1,7 @@
 package elog
 
 import (
-	"eden_go/elog"
+	"github.com/ziyht/eden_go/elog"
 )
 
 func runConfigTutotil() {

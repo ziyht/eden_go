@@ -1,7 +1,7 @@
 package main
 
 import (
-	"eden_go/tutorial/elog"
+	"github.com/ziyht/eden_go/tutorial/elog"
 )
 
 func main() {
