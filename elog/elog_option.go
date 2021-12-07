@@ -28,7 +28,7 @@ func newOpt() *option {
 	return &option{}
 }
 
-func (o *option)NoFile   () *option {return o.FileName("")}
+func (o *option)NoFile   () *option {return o.Filename("")}
 func (o *option)NoConsole() *option {return o.ConsoleLevel(LEVEL_NONE)}
 
 //    <HOSTNAME> -> hostname of current machine;
@@ -42,7 +42,7 @@ func (o *option)Group            (v string) *option {o.group             = v; o.
 //    <HOSTNAME> -> hostname of current machine;
 //    <APP_NAME> -> binary file name of current application;
 //    <LOG_NAME> -> the name of current logger, in __default, it will set to elog;
-func (o *option)FileName         (v string) *option {o.filename          = v; o.filenameSet          = true; return o }
+func (o *option)Filename         (v string) *option {o.filename          = v; o.filenameSet          = true; return o }
 func (o *option)FileLevel        (l Level)  *option {o.fileLevel         = l; o.fileLevelSet         = true; return o }
 func (o *option)ConsoleLevel     (l Level)  *option {o.consoleLevel      = l; o.consoleLevelSet      = true; return o}
 func (o *option)FileStackLevel   (l Level)  *option {o.fileStackLevel    = l; o.fileStackLevelSet    = true; return o}
@@ -71,7 +71,7 @@ func (o *option)applyOption(n *option) *option {
 
 	if n.dirSet               { o.Dir     (n.dir)      }
 	if n.groupSet             { o.Group   (n.group)    }
-	if n.filenameSet          { o.FileName(n.filename) }
+	if n.filenameSet          { o.Filename(n.filename) }
 
 	if n.consoleLevelSet      { o.ConsoleLevel     (n.consoleLevel     ) }
 	if n.consoleStackLevelSet { o.ConsoleStackLevel(n.consoleStackLevel) }

@@ -78,25 +78,25 @@ func TestLevelSetting(t *testing.T){
 	log.Errorf("should output")
 
 	// test for file write
-	log = Log(Opt().FileName("level_debug_test").FileLevel(LEVEL_DEBUG))
+	log = Log(Opt().Filename("level_debug_test").FileLevel(LEVEL_DEBUG))
 	log.Debugf("should write")
 	log.Infof ("should write")
 	log.Warnf ("should write")
 	log.Errorf("should write")
 
-	log = Log(Opt().FileName("level_info_test").FileLevel(LEVEL_INFO))
+	log = Log(Opt().Filename("level_info_test").FileLevel(LEVEL_INFO))
 	log.Debugf("should not write")
 	log.Infof ("should write")
 	log.Warnf ("should write")
 	log.Errorf("should write")
 
-	log = Log(Opt().FileName("level_warn_test").FileLevel(LEVEL_WARN))
+	log = Log(Opt().Filename("level_warn_test").FileLevel(LEVEL_WARN))
 	log.Debugf("should not write")
 	log.Infof ("should not write")
 	log.Warnf ("should write")
 	log.Errorf("should output")
 
-	log = Log(Opt().FileName("level_error_test").FileLevel(LEVEL_ERROR))
+	log = Log(Opt().Filename("level_error_test").FileLevel(LEVEL_ERROR))
 	log.Debugf("should not write")
 	log.Infof ("should not write")
 	log.Warnf ("should not write")
@@ -113,19 +113,19 @@ func TestDfLogger(t *testing.T){
 	log.Warnf ("wrn")
 	log.Errorf("err")
 
-	log = Log(Opt().FileName("test"))
+	log = Log(Opt().Filename("test"))
 	log.Debugf("dbg")
 	log.Infof ("inf")
 	log.Warnf ("wrn")
 	log.Errorf("err")
 
-	log = Log(Opt().FileName("test"))
+	log = Log(Opt().Filename("test"))
 	log.Debugf("dbg")
 	log.Infof ("inf")
 	log.Warnf ("wrn")
 	log.Errorf("err")
 
-	log = Log(Opt().FileName("test")).Named("[test]")
+	log = Log(Opt().Filename("test")).Named("[test]")
 	log.Debugf("dbg")
 	log.Infof ("inf")
 	log.Warnf ("wrn")
@@ -150,7 +150,7 @@ func TestYmlLogger(t *testing.T){
 	log.Warnf ("wrn")
 	log.Errorf("err")
 
-	log = Log(Opt().FileName("test1"))
+	log = Log(Opt().Filename("test1"))
 	log.Debugf("dbg")
 	log.Infof ("inf")
 	log.Warnf ("wrn")
