@@ -103,6 +103,21 @@ func TestLevelSetting(t *testing.T){
 	log.Errorf("should write")
 }
 
+func TestStackLevelSetting(t *testing.T){
+
+	os.Chdir("../")
+
+	// test for console
+	log := Log(Opt().NoFile().ConsoleLevel(LEVEL_DEBUG).ConsoleStackLevel(LEVEL_INFO))
+	log.Debugf("should output")
+	log.Infof ("should output")
+	log.Warnf ("should output")
+	log.Errorf("should output")
+
+
+
+}
+
 func TestDfLogger(t *testing.T){
 
 	os.Chdir("../")
@@ -125,7 +140,34 @@ func TestDfLogger(t *testing.T){
 	log.Warnf ("wrn")
 	log.Errorf("err")
 
-	log = Log(Opt().Filename("test")).Named("[test]")
+}
+
+func TestDfLoggerTags(t *testing.T){
+
+	os.Chdir("../")
+
+	logger := Logger()
+	logger.option.Tags("first")
+
+	log := Log(Opt().Filename("DfLoggerTags").Tags("tag1"))
+	log.Debugf("dbg")
+	log.Infof ("inf")
+	log.Warnf ("wrn")
+	log.Errorf("err")
+
+	log = Log(Opt().Filename("DfLoggerTags").Tags("tag1", "tag2"))
+	log.Debugf("dbg")
+	log.Infof ("inf")
+	log.Warnf ("wrn")
+	log.Errorf("err")
+
+	log = Log(Opt().Filename("DfLoggerTags").Tags("tag1", "", "tag3"))
+	log.Debugf("dbg")
+	log.Infof ("inf")
+	log.Warnf ("wrn")
+	log.Errorf("err")
+
+	log = Log(Opt().Filename("DfLoggerTags").ReTags("tag1").Tags("tag4"))
 	log.Debugf("dbg")
 	log.Infof ("inf")
 	log.Warnf ("wrn")

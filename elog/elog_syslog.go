@@ -4,11 +4,12 @@ var (
 	syslogCfg = genSyslogCfg()
 	syslogger *Elogger
 	syslog Elog
-	syslogTag  = "[ELOG]"
+	syslogTag  = "ELOG"
 )
 
 func genSyslogCfg() Cfg {
 	return Cfg{
+		Tag              : syslogTag,
 		Dir              : "logs",
 		Group            : "<APP_NAME>",
 		FileName         : "",
@@ -27,5 +28,5 @@ func genSyslogCfg() Cfg {
 
 func initSyslog() {
   syslogger = genElogger("syslog", &syslogCfg)
-	syslog = syslogger.getLog().Named(syslogTag)
+	syslog = syslogger.getLog()
 }

@@ -165,53 +165,53 @@ elog:
 	if dfcfg.FileStackLevel    != "debug" { t.Fatalf("val not match") }
 	if dfcfg.ConsoleColor      != false { t.Fatalf("val not match") }
 
-	cfg := cfgs.Cfgs["filename"]
+	cfg := cfgs["filename"]
 	if cfg != nil { t.Fatalf("should be nil") }
 
 	expect := dfcfg
-  cfg = cfgs.Cfgs["none_reset"]
+  cfg = cfgs["none_reset"]
 	if cfg == nil { t.Fatalf("cfg should not be nil") }
 	err = compareCfg(cfg, &expect)
 	if err != nil { t.Fatalf("%s", err) }
 
 	expect = dfcfg
 	expect.Group = "group2"
-  cfg = cfgs.Cfgs["reset_goup"]
+  cfg = cfgs["reset_goup"]
 	if cfg == nil { t.Fatalf("cfg should not be nil") }
 	err = compareCfg(cfg, &expect)
 	if err != nil { t.Fatalf("%s", err) }
 
 	expect = dfcfg
 	expect.FileName = "filename2"
-  cfg = cfgs.Cfgs["reset_filename"]
+  cfg = cfgs["reset_filename"]
 	if cfg == nil { t.Fatalf("cfg should not be nil") }
 	err = compareCfg(cfg, &expect)
 	if err != nil { t.Fatalf("%s", err) }
 
 	expect = dfcfg
 	expect.MaxSize = 11
-  cfg = cfgs.Cfgs["reset_max_size"]
+  cfg = cfgs["reset_max_size"]
 	if cfg == nil { t.Fatalf("cfg should not be nil") }
 	err = compareCfg(cfg, &expect)
 	if err != nil { t.Fatalf("%s", err) }	
 
 	expect = dfcfg
 	expect.MaxBackups = 11
-  cfg = cfgs.Cfgs["reset_max_backups"]
+  cfg = cfgs["reset_max_backups"]
 	if cfg == nil { t.Fatalf("cfg should not be nil") }
 	err = compareCfg(cfg, &expect)
 	if err != nil { t.Fatalf("%s", err) }	
 
 	expect = dfcfg
 	expect.MaxAge = 11
-  cfg = cfgs.Cfgs["reset_max_age"]
+  cfg = cfgs["reset_max_age"]
 	if cfg == nil { t.Fatalf("cfg should not be nil") }
 	err = compareCfg(cfg, &expect)
 	if err != nil { t.Fatalf("%s", err) }	
 
 	expect = dfcfg
 	expect.Compress = false
-  cfg = cfgs.Cfgs["reset_compress"]
+  cfg = cfgs["reset_compress"]
 	if cfg == nil { t.Fatalf("cfg should not be nil") }
 	err = compareCfg(cfg, &expect)
 	if err != nil { t.Fatalf("%s", err) }	
@@ -219,7 +219,7 @@ elog:
 	expect = dfcfg
 	expect.ConsoleLevel = "error"
 	expect.FileLevel    = "error"
-  cfg = cfgs.Cfgs["reset_level"]
+  cfg = cfgs["reset_level"]
 	if cfg == nil { t.Fatalf("cfg should not be nil") }
 	err = compareCfg(cfg, &expect)
 	if err != nil { t.Fatalf("%s", err) }	
@@ -227,7 +227,7 @@ elog:
 	expect = dfcfg
 	expect.ConsoleStackLevel = "error"
 	expect.FileStackLevel    = "error"
-  cfg = cfgs.Cfgs["reset_stack_level"]
+  cfg = cfgs["reset_stack_level"]
 	if cfg == nil { t.Fatalf("cfg should not be nil") }
 	err = compareCfg(cfg, &expect)
 	if err != nil { t.Fatalf("%s", err) }	
@@ -235,7 +235,7 @@ elog:
 	expect = dfcfg
 	expect.ConsoleColor = true
 	expect.FileColor    = true
-  cfg = cfgs.Cfgs["reset_color"]
+  cfg = cfgs["reset_color"]
 	if cfg == nil { t.Fatalf("cfg should not be nil") }
 	err = compareCfg(cfg, &expect)
 	if err != nil { t.Fatalf("%s", err) }	

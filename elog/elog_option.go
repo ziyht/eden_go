@@ -1,10 +1,10 @@
 package elog
 
 type option struct {
+	tags               []string
 	dir                  string
 	group                string
 	filename     	       string
-	tag          	       string
 	consoleLevel 	       Level
 	consoleStackLevel    Level
 	fileLevel    	       Level
@@ -12,10 +12,10 @@ type option struct {
 	fileColor            bool
 	consoleColor         bool
 
+	reTagSet             bool
 	dirSet               bool
 	groupSet             bool
 	filenameSet  	       bool
-	tagSet       	       bool
 	consoleLevelSet      bool
 	consoleStackLevelSet bool
 	fileLevelSet         bool
@@ -27,6 +27,11 @@ type option struct {
 func newOpt() *option {
 	return &option{}
 }
+
+// add tags for new log, it will append to the tags set in logger, empty tag will be skipped
+func (o *option)Tags(tags ...string) *option   { for _, tag := range tags { if tag != "" { o.tags = append(o.tags, tag)} } ; return o}
+// add tags for new log, tags set in logger will take no effect, empty tag will be skipped
+func (o *option)ReTags(tags ...string) *option { o.reTagSet = true; return o.Tags(tags...)}
 
 func (o *option)NoFile   () *option {return o.Filename("")}
 func (o *option)NoConsole() *option {return o.ConsoleLevel(LEVEL_NONE)}
@@ -57,6 +62,7 @@ func (update optionFunc) apply(op *option) {
 
 func (opt *option)clone()*option{
 	op := *opt
+	op.tags = opt.tags[:]
 	return &op
 }
 
@@ -68,6 +74,8 @@ func (o *option)applyOptions(ns... *option)*option{
 }
 
 func (o *option)applyOption(n *option) *option {
+	if !n.reTagSet            { o.tags = append(o.tags, n.tags...)
+	} else                    { o.tags = n.tags[:]}
 
 	if n.dirSet               { o.Dir     (n.dir)      }
 	if n.groupSet             { o.Group   (n.group)    }
@@ -82,10 +90,11 @@ func (o *option)applyOption(n *option) *option {
   if n.consoleColorSet      { o.ConsoleColor(n.consoleColor) }
 
 	return o
-
 }
 
 func (opt *option)applyCfg(cfg *Cfg)*option{
+	if !opt.reTagSet             { if cfg.Tag != "" {opt.tags = append(opt.tags, cfg.Tag)} }
+
 	if !opt.dirSet               { opt.dir          = cfg.Dir      }
 	if !opt.groupSet             { opt.group        = cfg.Group    }
 	if !opt.filenameSet          { opt.filename     = cfg.FileName }

@@ -48,12 +48,9 @@ elog:
 `
 
 const (
-	cfgRootKey     = "elog"          // root key in the config file for elog
-	cfgDefaultName = "__default"     // key of default setting for each log
-	
+	cfgRootKey      = "elog"          // root key in the config file for elog
 	defaultFilename = "elog"
-
-	defaultTag = ""
+	defaultTag      = ""
 )
 
 var (
@@ -64,6 +61,7 @@ var (
 
 // Cfg ...
 type Cfg struct{
+	Tag               string `yaml:"tag"`
 	Dir          	    string `yaml:"dir"`
 	Group             string `yaml:"group"`
 	FileName          string `yaml:"filename"`
@@ -78,18 +76,12 @@ type Cfg struct{
 	FileStackLevel    string `yaml:"file_stack_level"`
 	Compress    	    bool   `yaml:"compress"`
 
-	name    string
 	logDir  string
 	path    string
 }
 
-type rootCfg struct {
-	Cfgs map[string]*Cfg  `yaml:"elog"`
-}
-
-func (c *Cfg)Clone(newName string) (*Cfg){
+func (c *Cfg)Clone() (*Cfg){
 	out := *c
-	out.name = newName
 	return &out 
 }
 
@@ -108,7 +100,6 @@ func genDfCfg() *Cfg {
 		FileColor        : true,
 		FileStackLevel   : LEVELS_WARN,
 		Compress         : false,
-		name             : cfgDefaultName,
 	}
 }
 
@@ -178,7 +169,7 @@ func (cfg *Cfg)validateAndCheck()(err error) {
 	return 
 }
 
-func readCfgFromFile(file string) (cfgs *rootCfg) {
+func readCfgFromFile(file string) (cfgs map[string]*Cfg) {
 
 	path, err := filepath.Abs(file); 
 	if err != nil {
@@ -204,9 +195,9 @@ func readCfgFromFile(file string) (cfgs *rootCfg) {
 	return cfgs
 }
 
-func parsingCfgsFromStr(content string, ext string) (*rootCfg, error) {
+func parsingCfgsFromStr(content string, ext string) (map[string]*Cfg, error) {
 
-	cfgs := rootCfg{ map[string]*Cfg{} }
+	cfgs := map[string]*Cfg{} 
 
 	v := viper.New()
 	v.SetConfigType(ext)
@@ -216,7 +207,7 @@ func parsingCfgsFromStr(content string, ext string) (*rootCfg, error) {
 
 	rootObj := v.Get(cfgRootKey)
 	if rootObj == nil {
-		return &cfgs, nil
+		return cfgs, nil
 	}
 
 	root, ok := rootObj.(map[string]interface{})
@@ -240,21 +231,21 @@ func parsingCfgsFromStr(content string, ext string) (*rootCfg, error) {
 			return nil, fmt.Errorf("parsing cfg for '%s' failed:\n %s", key, err)
 		}
 		
-		cfgs.Cfgs[key] = tmpCfg
+		cfgs[key] = tmpCfg
 	}
 
 	dfCfg = *tmpDfCfg
-	dfCfg.name = cfgDefaultName
 
-	return &cfgs, nil
+	return cfgs, nil
 }
 
 func parsingCfg(dfCfg *Cfg, v *viper.Viper, rootKey string, curKey string) (cfg *Cfg, err error) {
 
 	if curKey != "" { curKey += "." }
 
-	cfg = dfCfg.Clone(curKey)
+	cfg = dfCfg.Clone()
 
+	tagPath 		     	:= rootKey + "." + curKey + "tag"
 	dirPath 		     	:= rootKey + "." + curKey + "dir"
 	groupPath 	     	:= rootKey + "." + curKey + "group"
 	filenamePath	    := rootKey + "." + curKey + "filename"
@@ -266,6 +257,7 @@ func parsingCfg(dfCfg *Cfg, v *viper.Viper, rootKey string, curKey string) (cfg 
 	stackLevelPath    := rootKey + "." + curKey + "stack_level"
 	colorPath         := rootKey + "." + curKey + "color"
 
+	if v.IsSet(tagPath)  			 {cfg.Tag,     _, err = getMultiStringFromObj(v.Get(tagPath)     ); if err != nil {return nil, fmt.Errorf("parsing tag failed: %s", err)}}
 	if v.IsSet(dirPath)  			 {cfg.Dir,     _, err = getMultiStringFromObj(v.Get(dirPath)     ); if err != nil {return nil, fmt.Errorf("parsing dir failed: %s", err)}}
 	if v.IsSet(groupPath)			 {cfg.Group,   _, err = getMultiStringFromObj(v.Get(groupPath)   ); if err != nil {return nil, fmt.Errorf("parsing group failed: %s", err)}}
 	if v.IsSet(filenamePath)	 {cfg.FileName,_, err = getMultiStringFromObj(v.Get(filenamePath)); if err != nil {return nil, fmt.Errorf("parsing filename failed: %s", err)}}
@@ -359,14 +351,13 @@ func getRepresentPathValue(path string, name string) string {
 		return path
 	}
 
+	if name == "" {
+		name = defaultFilename
+	}
+
 	path = strings.ReplaceAll(path, "<HOSTNAME>", hostname)
 	path = strings.ReplaceAll(path, "<APP_NAME>", appName)
-
-	if name == cfgDefaultName {
-		path = strings.ReplaceAll(path, "<LOG_NAME>", defaultFilename)
-	} else {
-		path = strings.ReplaceAll(path, "<LOG_NAME>", name)
-	}
+	path = strings.ReplaceAll(path, "<LOG_NAME>", name)
 
 	return path
 }

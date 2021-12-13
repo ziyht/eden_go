@@ -17,6 +17,7 @@ type Elogger struct {
 }
 
 var (
+	dfLoggerName = "__default__"
   dfLogger *Elogger
 	loggers  = map[string]*Elogger{}
 	mu       sync.Mutex
@@ -48,7 +49,6 @@ func genElogger(name string, cfg *Cfg) *Elogger {
 
 	out.name           = name
 	out.cfg            = cfg
-	out.cfg.name       = name
 	out.option         = newOpt().applyCfg(cfg)
 
 	return out
@@ -86,35 +86,40 @@ func getLogger(name ...string) *Elogger {
 // if not set, it will using cfg in logger
 func (l *Elogger)getLog(opts ...*option) Elog {
 
-	var logger *zap.Logger
-	var path string
+	console_needed := false
+	file_needed    := false
 
 	opt := l.option.clone().applyOptions(opts...)
 	
 	var cores []zapcore.Core
+
+	// setting console output core
 	cores = append(cores, l.getConsoleCore(1, opt))
+	console_needed = true
 
 	// setting output file core if neededs
-	{
-		if opt.filename != "" {
-			
-			if !filepath.IsAbs(opt.filename) {
-				path = filepath.Join(l.cfg.Dir, l.cfg.Group, opt.filename)
-				if !strings.HasSuffix(opt.filename, ".log"){
-					path += ".log"
-				}
+	if opt.filename != "" {
+		path := opt.filename
+
+		if !filepath.IsAbs(opt.filename) {
+			path = filepath.Join(l.cfg.Dir, l.cfg.Group, opt.filename)
+			if !strings.HasSuffix(opt.filename, ".log"){
+				path += ".log"
 			}
-			
-			path = getRepresentPathValue(path, l.name)
-			
-			cores = append(cores, l.getFileCore(path, opt))
 		}
+
+		file_needed = true
+		cores = append(cores, l.getFileCore(getRepresentPathValue(path, l.name), opt))
 	}
+	
+	// get lowest stack level
+	stackLevel := LEVEL_NONE
+	if console_needed && stackLevel > opt.consoleStackLevel { stackLevel = opt.consoleStackLevel }
+	if file_needed    && stackLevel > opt.fileStackLevel    { stackLevel = opt.fileStackLevel }
 
-	logger = zap.New(zapcore.NewTee(cores...), zap.AddStacktrace(zapcore.Level(opt.fileStackLevel)))
-
-	if opt.tagSet{
-		return logger.Sugar().Named(opt.tag)
+	logger := zap.New(zapcore.NewTee(cores...), zap.AddStacktrace(zapcore.Level(stackLevel)))
+	if len(opt.tags) > 0 {
+		logger = logger.Named("[" + strings.Join(opt.tags, ".") + "]")
 	}
 
 	return logger.Sugar()
@@ -132,11 +137,11 @@ func initDfLogger(cfg *Cfg) {
 
 	if cfg == nil {
 		if dfLogger == nil {
-			dfLogger = NewLogger(cfgDefaultName, &dfCfg)
+			dfLogger = NewLogger(dfLoggerName, &dfCfg)
 		}
 		return
 	}
 
-	dfLogger = NewLogger(cfgDefaultName, cfg)
+	dfLogger = NewLogger(dfLoggerName, cfg)
 	dfCfg = *cfg
 }
