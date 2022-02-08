@@ -16,8 +16,8 @@ const sampleCfg =
 `
 # Tag representation for dir, group, filename
 #    <HOSTNAME> -> hostname of current machine
-#    <APP_NAME> -> binary file name of current application
-#    <LOG_NAME> -> the name of current logger, in default cfg, it will set to elog
+#    <APP> -> binary file name of current application
+#    <LOG> -> the name of current logger, in default cfg, it will set to elog
 #
 #  note: 
 #    1. the key like 'dir', 'group', ... under elog directly is to set default value,
@@ -28,9 +28,10 @@ const sampleCfg =
 #
 
 elog:
+  tag           : [ELOG]                  # default [ELOG]
   dir           : logs                    # default logs
   group         : <HOSTNAME>              # default <HOSTNAME>, if set, real dir will be $Dir/$Group
-  filename      : <LOG_NAME>              # default <LOG_NAME>, will not write to file if set empty, real file path will be $Dir/$Group/$File
+  filename      : <APP>_<LOG>             # default <APP>_<LOG>, will not write to file if set empty, real file path will be $Dir/$Group/$File
   max_size      : 100                     # default 100, unit MB
   max_backups   : 7                       # default 7
   max_age       : 7                       # default 7
@@ -48,9 +49,13 @@ elog:
 `
 
 const (
-	cfgRootKey      = "elog"          // root key in the config file for elog
-	defaultFilename = "elog"
-	defaultTag      = ""
+	cfgRootKey       = "elog"          // root key in the config file for elog
+	dfDir            = "logs"
+	dfGroup          = "<HOSTNAME>"  
+	dfFileName       = "<APP>_<LOG>"
+	dfTag            = "ELOG"
+	dfFileCfgName    = "file"
+	dfConsoleCfgName = "console"
 )
 
 var (
@@ -68,16 +73,36 @@ type Cfg struct{
 	MaxSize     	    int    `yaml:"max_size"`
 	MaxBackups  	    int    `yaml:"max_backups"`
 	MaxAge      	    int    `yaml:"max_age"`
-	ConsoleLevel      string `yaml:"console_level"`
-	ConsoleColor      bool   `yaml:"console_color"`
-	ConsoleStackLevel string `yaml:"console_stack_level"`
-	FileLevel         string `yaml:"file_level"`
-	FileColor         bool   `yaml:"file_color"`
-	FileStackLevel    string `yaml:"file_stack_level"`
 	Compress    	    bool   `yaml:"compress"`
+	FileLevel         string `yaml:"file_level"`
+	FileColor         colorSwitch   `yaml:"file_color"`
+	FileStackLevel    string `yaml:"file_stack_level"`
+	ConsoleLevel      string `yaml:"console_level"`
+	ConsoleColor      colorSwitch   `yaml:"console_color"`
+	ConsoleStackLevel string `yaml:"console_stack_level"`
 
 	logDir  string
 	path    string
+}
+
+type LogCfg struct {
+	Name   	    string      `yaml:"name"` 	
+	Tag    	    string      `yaml:"tag"`
+	Level  	    string      `yaml:"level"`
+	StackLevel  string      `yaml:"stack_level"`
+	Color       colorSwitch
+
+	// for console settings
+	Stream      string   `yaml:"stream"`
+	
+	// for file settings
+	Dir         string   `yaml:"dir"`
+	Group       string   `yaml:"group"`
+	FileName    string   `yaml:"filename"`
+	MaxSize     int      `yaml:"max_size"`
+	MaxBackups  int      `yaml:"max_backups"`
+	MaxAge      int      `yaml:"max_age"`
+  Compress    bool     `yaml:"compress"`
 }
 
 func (c *Cfg)Clone() (*Cfg){
@@ -87,21 +112,57 @@ func (c *Cfg)Clone() (*Cfg){
 
 func genDfCfg() *Cfg {
 	return &Cfg{
-		Dir              : "logs",
-		Group            : "<HOSTNAME>",
-		FileName         : "<APP_NAME>",
+		Tag              : dfTag,
+		Dir              : dfDir,
+		Group            : dfGroup,
+		FileName         : dfFileName,
 		MaxSize          : 100,
 		MaxBackups       : 7,
 		MaxAge           : 7,
 		ConsoleLevel     : LEVELS_INFO,
-		ConsoleColor     : true,
+		ConsoleColor     : ColorAuto,
 		ConsoleStackLevel: LEVELS_ERROR,
 		FileLevel        : LEVELS_DEBUG,
-		FileColor        : true,
+		FileColor        : ColorAuto,
 		FileStackLevel   : LEVELS_WARN,
 		Compress         : false,
 	}
 }
+
+func genDfFileLogCfg() *LogCfg {
+	return &LogCfg{
+		Name             : dfFileCfgName,
+		Tag              : dfTag,
+		Dir              : dfDir,
+		Group            : dfGroup,
+		FileName         : dfFileName,
+		MaxSize          : 100,
+		MaxBackups       : 7,
+		MaxAge           : 7,
+		Level            : LEVELS_DEBUG,
+		Color            : ColorAuto,
+		StackLevel       : LEVELS_WARN,
+		Compress         : false,
+	}
+}
+
+func genDfConsoleLogCfg() *LogCfg {
+	return &LogCfg{
+		Name             : dfConsoleCfgName,
+		Tag              : dfTag,
+		Dir              : dfDir,
+		Group            : dfGroup,
+		FileName         : dfFileName,
+		MaxSize          : 100,
+		MaxBackups       : 7,
+		MaxAge           : 7,
+		Level            : LEVELS_INFO,
+		Color            : ColorAuto,
+		StackLevel       : LEVELS_ERROR,
+		Compress         : false,
+	}
+}
+
 
 func (cfg *Cfg)check() (err error) {
 	if err = cfg.checkFileRotate(); err != nil {return}
@@ -239,6 +300,67 @@ func parsingCfgsFromStr(content string, ext string) (map[string]*Cfg, error) {
 	return cfgs, nil
 }
 
+func parsingDfCfg(dfCfg *Cfg, v *viper.Viper, rootKey string, curKey string)(cfg *Cfg, err error) {
+
+	if curKey != "" { curKey += "." }
+
+	cfg = dfCfg.Clone()
+
+	tagPath 		     	:= rootKey + "." + curKey + "tag"
+	dirPath 		     	:= rootKey + "." + curKey + "dir"
+	groupPath 	     	:= rootKey + "." + curKey + "group"
+	filenamePath	    := rootKey + "." + curKey + "filename"
+	maxsizePath       := rootKey + "." + curKey + "max_size"
+	maxBackupsPath    := rootKey + "." + curKey + "max_backups"
+	maxAgePath        := rootKey + "." + curKey + "max_age"
+	compressPath      := rootKey + "." + curKey + "compress"
+	fLevelPath        := rootKey + "." + curKey + "f_level"
+	fStackLevelPath   := rootKey + "." + curKey + "f_stack_level"
+	fColorPath        := rootKey + "." + curKey + "f_color"
+	cLevelPath        := rootKey + "." + curKey + "c_level"
+	cStackLevelPath   := rootKey + "." + curKey + "c_stack_level"
+	cColorPath        := rootKey + "." + curKey + "c_color"
+
+	if v.IsSet(tagPath)  			 {cfg.Tag,     _, err = getMultiStringFromObj(v.Get(tagPath)     ); if err != nil {return nil, fmt.Errorf("parsing tag failed: %s", err)}}
+	if v.IsSet(dirPath)  			 {cfg.Dir,     _, err = getMultiStringFromObj(v.Get(dirPath)     ); if err != nil {return nil, fmt.Errorf("parsing dir failed: %s", err)}}
+	if v.IsSet(groupPath)			 {cfg.Group,   _, err = getMultiStringFromObj(v.Get(groupPath)   ); if err != nil {return nil, fmt.Errorf("parsing group failed: %s", err)}}
+	if v.IsSet(filenamePath)	 {cfg.FileName,_, err = getMultiStringFromObj(v.Get(filenamePath)); if err != nil {return nil, fmt.Errorf("parsing filename failed: %s", err)}}
+	if v.IsSet(maxsizePath)		 {cfg.MaxSize   , err = getIntFromObj(v.Get(maxsizePath)   ); if err != nil { return nil, fmt.Errorf("parsing max_size failed: %s", err) } }
+	if v.IsSet(maxBackupsPath) {cfg.MaxBackups, err = getIntFromObj(v.Get(maxBackupsPath)); if err != nil { return nil, fmt.Errorf("parsing max_backups failed: %s", err) } }
+	if v.IsSet(maxAgePath)		 {cfg.MaxAge    , err = getIntFromObj(v.Get(maxAgePath)    ); if err != nil { return nil, fmt.Errorf("parsing max_age failed: %s", err) } }
+	if v.IsSet(compressPath)	 {cfg.Compress,_, err = getMultiBoolFromObj(v.Get(compressPath)); if err != nil { return nil, fmt.Errorf("parsing compress failed: %s", err) } }
+
+	var errs []string
+	
+	if v.IsSet(levelPath) {
+		if cfg.ConsoleLevel, cfg.FileLevel, err = getMultiStringFromObj(v.Get(levelPath)); err != nil {
+			errs = append(errs, fmt.Sprintf("parsing level failed: %s", err))
+		}
+	}
+	if v.IsSet(stackLevelPath) {
+		if cfg.ConsoleStackLevel, cfg.FileStackLevel, err = getMultiStringFromObj(v.Get(stackLevelPath)); err != nil {
+			errs = append(errs, fmt.Sprintf("parsing stack_level failed: %s", err))
+		}
+	}
+	if v.IsSet(fColorPath) {
+		if cfg.FileColor, err = parsingColorStr(v.Get(fColorPath)); err != nil {
+			errs = append(errs, fmt.Sprintf("parsing color failed: %s", err))
+		}
+	}
+
+	if len(errs) > 0 {
+		err = fmt.Errorf("%s", strings.Join(errs, " | "))
+		return nil, err
+	}
+	if err = cfg.checkAndValidate(); err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+
+
+}
+
 func parsingCfg(dfCfg *Cfg, v *viper.Viper, rootKey string, curKey string) (cfg *Cfg, err error) {
 
 	if curKey != "" { curKey += "." }
@@ -295,55 +417,29 @@ func parsingCfg(dfCfg *Cfg, v *viper.Viper, rootKey string, curKey string) (cfg 
 	return cfg, nil
 }
 
-func getIntFromObj(obj interface{}) (val int, err error) {
 
-	if v, ok := obj.(int); ok {
-		return v, nil
+func parsingColorStr(obj interface{}) (val colorSwitch, err error) {
+
+	if v, ok := obj.(bool); ok {
+		if v {
+			return ColorOn, nil
+		} else {
+			return ColorOff, nil
+		}
 	}
-	return 0, fmt.Errorf("invalid type: %s", reflect.TypeOf(obj))
-}
-
-func getMultiStringFromObj(obj interface{}) (s1 string, s2 string, err error) {
-	switch obj := obj.(type) {
-  case string: return obj, obj, nil
-	case []interface{}: 
-		if len(obj) == 0 { return "", "", fmt.Errorf("val not set")
-	  } else {
-			obj = append(obj, obj[0])
-			var v1, v2 string; var ok bool
-			if v1, ok = obj[0].(string); !ok {
-				return "", "", fmt.Errorf("invalid type of [0]: %s", reflect.TypeOf(obj[0]))
-			}
-			if v2, ok = obj[1].(string); !ok {
-				return "", "", fmt.Errorf("invalid type of [1]: %s", reflect.TypeOf(obj[0]))
-			}
-			return v1, v2, nil
+  if v, ok := obj.(string); ok {
+    v = strings.ToLower(v)
+		switch v {
+      case "true" : return ColorOn, nil
+      case "false": return ColorOff, nil
+      case "auto" : return ColorAuto, nil
 		}
-  }  
 
-	return "", "", fmt.Errorf("invalid type: %s", reflect.TypeOf(obj))
+		return ColorOff, fmt.Errorf("invalid str: %s, you can set 'true', 'false', 'auto'", v)
+  }
+	return ColorOff, fmt.Errorf("invalid type: %s", reflect.TypeOf(obj))
 }
 
-func getMultiBoolFromObj(obj interface{}) (b1 bool, b2 bool, err error) {
-	switch obj := obj.(type) {
-  case bool: return obj, obj, nil
-	case []interface{}: 
-		if len(obj) == 0 { return false, false, fmt.Errorf("val not set")
-	  } else {
-			obj = append(obj, obj[0])
-			var v1, v2 bool; var ok bool
-			if v1, ok = obj[0].(bool); !ok {
-				return false, false, fmt.Errorf("invalid type of [0]: %s", reflect.TypeOf(obj[0]))
-			}
-			if v2, ok = obj[1].(bool); !ok {
-				return false, false, fmt.Errorf("invalid type of [1]: %s", reflect.TypeOf(obj[0]))
-			}
-			return v1, v2, nil
-		}
-  }  
-
-	return false, false, fmt.Errorf("invalid type: %s", reflect.TypeOf(obj))
-}
 
 func getRepresentPathValue(path string, name string) string {
 
@@ -352,7 +448,7 @@ func getRepresentPathValue(path string, name string) string {
 	}
 
 	if name == "" {
-		name = defaultFilename
+		name = dfFileName
 	}
 
 	path = strings.ReplaceAll(path, "<HOSTNAME>", hostname)

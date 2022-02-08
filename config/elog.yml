@@ -2,8 +2,8 @@
 #
 # Tag representation for dir, group, filename
 #    <HOSTNAME> -> hostname of current machine
-#    <APP_NAME> -> binary file name of current application
-#    <LOG_NAME> -> the name of current logger, in default cfg, it will set to elog
+#    <APP> -> binary file name of current application
+#    <LOG> -> the name of current logger, in default cfg, the name is 'default'
 #
 #  note: 
 #    1. the key like 'dir', 'group', ... under elog directly is to set default value,
@@ -32,4 +32,48 @@ elog:
 
   level_debug:
     level   : debug
+
+elogv2:
+  
+  dir           : logs                # default logs
+  group         : <HOSTNAME>          # default <HOSTNAME>, if set, real dir will be $Dir/$Group
+  filename      : <APP>_<LOG>         # default <LOG_NAME>, will not write to file if set empty, real file path will be $Dir/$Group/$File
+  max_size      : 100                 # default 100, unit MB
+  max_backups   : 7                   # default 7
+  max_age       : 7                   # default 7
+  compress      : false               # default false
+  f_level       : debug               # default debug, for file, valid value is [debug, info, warn, error, fatal, panic]
+  f_stack_level : warn                # default warn , for file, valid value is [debug, info, warn, error, fatal, panic]
+  f_color       : false               # default false, for file
+  c_level       : info                # default info , for console, valid value is [debug, info, warn, error, fatal, panic]
+  c_stack_level : error               # default error, for console, valid value is [debug, info, warn, error, fatal, panic]
+  c_color       : true                # default true , for console
+
+  default:
+  - name        : console
+    stream      : stdout
+    level       : info
+    stack_level : error
+    color       : auto                # auto[default], true, false
+  - name        : file
+    dir         : logs                # default logs
+    group       : <HOSTNAME>          # default <HOSTNAME>, if set, real dir will be $dir/$group
+    filename    : <APP>_<LOG>         # default <LOG_NAME>, will not write to file if set empty, real file path will be $dir/$group/$file_name
+    max_size    : 100                 # default 100, unit MB
+    max_backup  : 7                   # default 7
+    max_age     : 7                   # default 7
+    compress    : false               # default false
+    level       : debug               # default debug, for file, valid value is [debug, info, warn, error, fatal, panic]
+    stack_level : warn                # default warn , for file, valid value is [debug, info, warn, error, fatal, panic]
+    color       : false               # default false, for file
+
+  console:
+  - stream: stdout
+
+  file:
+  - filename: <APP>_<LOG>
+  
+  mix:
+  - inherit: console.0
+  - inherit: file.0
 

@@ -2,6 +2,15 @@ package elog
 
 import "github.com/fatih/color"
 
+type colorSwitch int
+
+const (
+  ColorOff colorSwitch = 0 + iota
+	ColorOn
+	ColorAuto
+
+)
+
 const (
 	COLOR_BLACK = 30 + iota
 	COLOR_RED
