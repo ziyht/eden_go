@@ -6,7 +6,15 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+type LevelEnabler interface {
+	Enabled(Level) bool
+}
+
 type Level zapcore.Level
+
+func (l Level) Enabled(lvl Level) bool {
+	return lvl >= l
+}
 
 const (
 	LEVEL_DEBUG  = Level(zapcore.DebugLevel)
@@ -18,6 +26,7 @@ const (
 	LEVEL_PANIC  = Level(zapcore.PanicLevel)
 	LEVEL_ALL    = LEVEL_DEBUG
 	LEVEL_NONE   = LEVEL_FATAL
+	LEVEL_OFF    = LEVEL_FATAL + 1
 
 	LEVELS_DEBUG  = "debug"
 	LEVELS_INFO   = "info"
@@ -33,7 +42,11 @@ const (
 	LEVELT_ERROR  = "ERR"
 	LEVELT_FATAL  = "FTL"
 	LEVELT_DPANIC = "DPN"
-	LEVELT_PANIC  = "PNC"
+	LEVELT_PANIC  = "PNC"	
+)
+
+var (
+	supportLevelStrs = []string{LEVELS_DEBUG, LEVELS_INFO, LEVELS_WARN, LEVELS_ERROR, LEVELS_FATAL, LEVELS_DPANIC, LEVELS_PANIC}
 )
 
 var _levelTags = [...]string {
@@ -68,7 +81,7 @@ func getLevelByStr(levelStr string) (Level, error) {
 	case LEVELS_PANIC : return LEVEL_PANIC , nil
 	}
 
-	return LEVEL_ALL, fmt.Errorf("unsupported Level str '%s'", levelStr)
+	return LEVEL_ALL, fmt.Errorf("unsupported Level str '%s', you can use: %s", levelStr, supportLevelStrs)
 }
 
 func getTagByLevel(l Level) string {

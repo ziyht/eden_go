@@ -48,10 +48,15 @@ func _noColoredLevelEncoder(l zapcore.Level, enc zapcore.PrimitiveArrayEncoder){
 	enc.AppendString(getTagByLevel(Level(l)))
 }
 
-func getLevelEncoder(color bool) zapcore.LevelEncoder {
-	if color {
+func getLevelEncoder(color colorSwitch) zapcore.LevelEncoder {
+
+	if color == ColorOn{
 		return _coloredLevelEncoder
 	}
-
-	return _noColoredLevelEncoder
+	if color == ColorOff {
+		return _noColoredLevelEncoder
+	}
+  
+	// todo: add auto color funcs
+	return _coloredLevelEncoder
 }

@@ -2,8 +2,8 @@ package elog
 
 import (
 	"fmt"
-	"os"
 	"io/ioutil"
+	"os"
 	"path"
 	"path/filepath"
 	"reflect"
@@ -66,31 +66,31 @@ var (
 
 // Cfg ...
 type Cfg struct{
-	Tag               string `yaml:"tag"`
-	Dir          	    string `yaml:"dir"`
-	Group             string `yaml:"group"`
-	FileName          string `yaml:"filename"`
-	MaxSize     	    int    `yaml:"max_size"`
-	MaxBackups  	    int    `yaml:"max_backups"`
-	MaxAge      	    int    `yaml:"max_age"`
-	Compress    	    bool   `yaml:"compress"`
-	FileLevel         string `yaml:"file_level"`
+	Tag               string        `yaml:"tag"`
+	Dir          	    string        `yaml:"dir"`
+	Group             string        `yaml:"group"`
+	FileName          string        `yaml:"filename"`
+	MaxSize     	    int           `yaml:"max_size"`
+	MaxBackup   	    int           `yaml:"max_backup"`
+	MaxAge      	    int           `yaml:"max_age"`
+	Compress    	    bool          `yaml:"compress"`
+	FileLevel         LevelEnabler  `yaml:"file_level"`
 	FileColor         colorSwitch   `yaml:"file_color"`
-	FileStackLevel    string `yaml:"file_stack_level"`
-	ConsoleLevel      string `yaml:"console_level"`
+	FileStackLevel    LevelEnabler  `yaml:"file_stack_level"`
+	ConsoleLevel      LevelEnabler  `yaml:"console_level"`
 	ConsoleColor      colorSwitch   `yaml:"console_color"`
-	ConsoleStackLevel string `yaml:"console_stack_level"`
+	ConsoleStackLevel LevelEnabler  `yaml:"console_stack_level"`
 
 	logDir  string
 	path    string
 }
 
 type LogCfg struct {
-	Name   	    string      `yaml:"name"` 	
-	Tag    	    string      `yaml:"tag"`
-	Level  	    string      `yaml:"level"`
-	StackLevel  string      `yaml:"stack_level"`
-	Color       colorSwitch
+	Name   	    string       `yaml:"name"` 	
+	Tag    	    string       `yaml:"tag"`
+	Level  	    LevelEnabler `yaml:"level"`
+	StackLevel  LevelEnabler `yaml:"stack_level"`
+	Color       colorSwitch 
 
 	// for console settings
 	Stream      string   `yaml:"stream"`
@@ -100,9 +100,14 @@ type LogCfg struct {
 	Group       string   `yaml:"group"`
 	FileName    string   `yaml:"filename"`
 	MaxSize     int      `yaml:"max_size"`
-	MaxBackups  int      `yaml:"max_backups"`
+	MaxBackup   int      `yaml:"max_backup"`
 	MaxAge      int      `yaml:"max_age"`
   Compress    bool     `yaml:"compress"`
+}
+
+type LoggerCfg struct {
+	df   *Cfg
+	cfgs []*LogCfg
 }
 
 func (c *Cfg)Clone() (*Cfg){
@@ -117,14 +122,14 @@ func genDfCfg() *Cfg {
 		Group            : dfGroup,
 		FileName         : dfFileName,
 		MaxSize          : 100,
-		MaxBackups       : 7,
+		MaxBackup        : 7,
 		MaxAge           : 7,
-		ConsoleLevel     : LEVELS_INFO,
+		ConsoleLevel     : LEVEL_INFO,
 		ConsoleColor     : ColorAuto,
-		ConsoleStackLevel: LEVELS_ERROR,
-		FileLevel        : LEVELS_DEBUG,
+		ConsoleStackLevel: LEVEL_ERROR,
+		FileLevel        : LEVEL_DEBUG,
 		FileColor        : ColorAuto,
-		FileStackLevel   : LEVELS_WARN,
+		FileStackLevel   : LEVEL_WARN,
 		Compress         : false,
 	}
 }
@@ -137,11 +142,11 @@ func genDfFileLogCfg() *LogCfg {
 		Group            : dfGroup,
 		FileName         : dfFileName,
 		MaxSize          : 100,
-		MaxBackups       : 7,
+		MaxBackup        : 7,
 		MaxAge           : 7,
-		Level            : LEVELS_DEBUG,
+		Level            : LEVEL_DEBUG,
 		Color            : ColorAuto,
-		StackLevel       : LEVELS_WARN,
+		StackLevel       : LEVEL_WARN,
 		Compress         : false,
 	}
 }
@@ -154,26 +159,42 @@ func genDfConsoleLogCfg() *LogCfg {
 		Group            : dfGroup,
 		FileName         : dfFileName,
 		MaxSize          : 100,
-		MaxBackups       : 7,
+		MaxBackup        : 7,
 		MaxAge           : 7,
-		Level            : LEVELS_INFO,
+		Level            : LEVEL_INFO,
 		Color            : ColorAuto,
-		StackLevel       : LEVELS_ERROR,
+		StackLevel       : LEVEL_ERROR,
 		Compress         : false,
 	}
 }
-
 
 func (cfg *Cfg)check() (err error) {
 	if err = cfg.checkFileRotate(); err != nil {return}
 	return cfg.checkLevelStr()
 }
 
+func (cfg *Cfg)genLogCfg()*LogCfg {
+	return &LogCfg{
+		Name             : "",
+		Tag              : cfg.Tag,
+		Dir              : cfg.Dir,
+		Group            : cfg.Group,
+		FileName         : cfg.FileName,
+		MaxSize          : cfg.MaxSize,
+		MaxBackup        : cfg.MaxBackup,
+		MaxAge           : cfg.MaxAge,
+		Level            : LEVEL_NONE,
+		Color            : ColorAuto,
+		StackLevel       : LEVEL_OFF,
+		Compress         : false,	
+	}
+}
+
 func (cfg *Cfg)checkLevelStr() (err error) {
-	if _, err = getLevelByStr(cfg.ConsoleLevel);      err != nil {return}
-	if _, err = getLevelByStr(cfg.FileLevel);         err != nil {return}
-	if _, err = getLevelByStr(cfg.ConsoleStackLevel); err != nil {return}
-	if _, err = getLevelByStr(cfg.FileStackLevel);    err != nil {return}
+	// if _, err = getLevelByStr(cfg.ConsoleLevel);      err != nil {return}
+	// if _, err = getLevelByStr(cfg.FileLevel);         err != nil {return}
+	// if _, err = getLevelByStr(cfg.ConsoleStackLevel); err != nil {return}
+	// if _, err = getLevelByStr(cfg.FileStackLevel);    err != nil {return}
 
 	return
 }
@@ -182,8 +203,8 @@ func (cfg *Cfg)checkFileRotate() (err error) {
 	if cfg.MaxSize < 0 {
 		return fmt.Errorf("invalid max_size(%d), should >= 0", cfg.MaxSize)
 	}
-	if cfg.MaxBackups < 0 {
-		return fmt.Errorf("invalid max_backups(%d), should >= 0", cfg.MaxBackups)
+	if cfg.MaxBackup < 0 {
+		return fmt.Errorf("invalid max_backup(%d), should >= 0", cfg.MaxBackup)
 	}
 	if cfg.MaxAge < 0 {
 		return fmt.Errorf("invalid max_age(%d), should >= 0", cfg.MaxAge)
@@ -195,7 +216,7 @@ func (cfg *Cfg)checkFileRotate() (err error) {
 func (cfg *Cfg)validate() (err error){
 
 	if cfg.MaxSize    < 0 { cfg.MaxSize    = 0 }
-	if cfg.MaxBackups < 0 { cfg.MaxBackups = 0 }
+	if cfg.MaxBackup  < 0 { cfg.MaxBackup  = 0 }
 	if cfg.MaxAge     < 0 { cfg.MaxAge     = 0 }
 
 	logDir := path.Join(cfg.Dir   , cfg.Group) 
@@ -230,7 +251,7 @@ func (cfg *Cfg)validateAndCheck()(err error) {
 	return 
 }
 
-func readCfgFromFile(file string) (cfgs map[string]*Cfg) {
+func readCfgFromFile(file string) (cfgs map[string]*LoggerCfg) {
 
 	path, err := filepath.Abs(file); 
 	if err != nil {
@@ -256,9 +277,9 @@ func readCfgFromFile(file string) (cfgs map[string]*Cfg) {
 	return cfgs
 }
 
-func parsingCfgsFromStr(content string, ext string) (map[string]*Cfg, error) {
+func parsingCfgsFromStr(content string, ext string) (map[string]*LoggerCfg, error) {
 
-	cfgs := map[string]*Cfg{} 
+	cfgs := map[string]*LoggerCfg{} 
 
 	v := viper.New()
 	v.SetConfigType(ext)
@@ -277,7 +298,7 @@ func parsingCfgsFromStr(content string, ext string) (map[string]*Cfg, error) {
 	}
 
 	// parsing default cfg
-	tmpDfCfg, err := parsingCfg(&dfCfg, v, cfgRootKey, "")
+	tmpDfCfg, err := parsingDfCfg(&dfCfg, v, cfgRootKey, "")
 	if err != nil{
 		return nil, fmt.Errorf("parsing default cfg failed:\n %s", err)
 	}
@@ -287,7 +308,7 @@ func parsingCfgsFromStr(content string, ext string) (map[string]*Cfg, error) {
 		if _, ok := val.(map[string]interface{}); !ok{
 			continue
 		}
-		tmpCfg, err := parsingCfg(tmpDfCfg, v, cfgRootKey, key)
+		tmpCfg, err := parsingLoggerCfg(tmpDfCfg, v, cfgRootKey, key)
 		if err != nil {
 			return nil, fmt.Errorf("parsing cfg for '%s' failed:\n %s", key, err)
 		}
@@ -326,27 +347,43 @@ func parsingDfCfg(dfCfg *Cfg, v *viper.Viper, rootKey string, curKey string)(cfg
 	if v.IsSet(groupPath)			 {cfg.Group,   _, err = getMultiStringFromObj(v.Get(groupPath)   ); if err != nil {return nil, fmt.Errorf("parsing group failed: %s", err)}}
 	if v.IsSet(filenamePath)	 {cfg.FileName,_, err = getMultiStringFromObj(v.Get(filenamePath)); if err != nil {return nil, fmt.Errorf("parsing filename failed: %s", err)}}
 	if v.IsSet(maxsizePath)		 {cfg.MaxSize   , err = getIntFromObj(v.Get(maxsizePath)   ); if err != nil { return nil, fmt.Errorf("parsing max_size failed: %s", err) } }
-	if v.IsSet(maxBackupsPath) {cfg.MaxBackups, err = getIntFromObj(v.Get(maxBackupsPath)); if err != nil { return nil, fmt.Errorf("parsing max_backups failed: %s", err) } }
+	if v.IsSet(maxBackupsPath) {cfg.MaxBackup , err = getIntFromObj(v.Get(maxBackupsPath)); if err != nil { return nil, fmt.Errorf("parsing max_backups failed: %s", err) } }
 	if v.IsSet(maxAgePath)		 {cfg.MaxAge    , err = getIntFromObj(v.Get(maxAgePath)    ); if err != nil { return nil, fmt.Errorf("parsing max_age failed: %s", err) } }
 	if v.IsSet(compressPath)	 {cfg.Compress,_, err = getMultiBoolFromObj(v.Get(compressPath)); if err != nil { return nil, fmt.Errorf("parsing compress failed: %s", err) } }
 
 	var errs []string
 	
-	if v.IsSet(levelPath) {
-		if cfg.ConsoleLevel, cfg.FileLevel, err = getMultiStringFromObj(v.Get(levelPath)); err != nil {
-			errs = append(errs, fmt.Sprintf("parsing level failed: %s", err))
+	if v.IsSet(fLevelPath) {
+		if cfg.FileLevel, err = parsingLevel(v.Get(fLevelPath)); err != nil {
+			errs = append(errs, fmt.Sprintf("parsing f_level failed: %s", err))
 		}
 	}
-	if v.IsSet(stackLevelPath) {
-		if cfg.ConsoleStackLevel, cfg.FileStackLevel, err = getMultiStringFromObj(v.Get(stackLevelPath)); err != nil {
-			errs = append(errs, fmt.Sprintf("parsing stack_level failed: %s", err))
+	if v.IsSet(fStackLevelPath) {
+		if cfg.FileStackLevel, err = parsingLevel(v.Get(fStackLevelPath)); err != nil {
+			errs = append(errs, fmt.Sprintf("parsing f_stack_level failed: %s", err))
 		}
 	}
 	if v.IsSet(fColorPath) {
-		if cfg.FileColor, err = parsingColorStr(v.Get(fColorPath)); err != nil {
-			errs = append(errs, fmt.Sprintf("parsing color failed: %s", err))
+		if cfg.FileColor, err = parsingColor(v.Get(fColorPath)); err != nil {
+			errs = append(errs, fmt.Sprintf("parsing f_color failed: %s", err))
 		}
 	}
+	if v.IsSet(cLevelPath) {
+		if cfg.FileLevel, err = parsingLevel(v.Get(cLevelPath)); err != nil {
+			errs = append(errs, fmt.Sprintf("parsing c_level failed: %s", err))
+		}
+	}
+	if v.IsSet(cStackLevelPath) {
+		if cfg.FileStackLevel, err = parsingLevel(v.Get(cStackLevelPath)); err != nil {
+			errs = append(errs, fmt.Sprintf("parsing c_stack_level failed: %s", err))
+		}
+	}
+	if v.IsSet(cColorPath) {
+		if cfg.FileColor, err = parsingColor(v.Get(cColorPath)); err != nil {
+			errs = append(errs, fmt.Sprintf("parsing c_color failed: %s", err))
+		}
+	}
+
 
 	if len(errs) > 0 {
 		err = fmt.Errorf("%s", strings.Join(errs, " | "))
@@ -358,67 +395,117 @@ func parsingDfCfg(dfCfg *Cfg, v *viper.Viper, rootKey string, curKey string)(cfg
 
 	return cfg, nil
 
-
 }
 
-func parsingCfg(dfCfg *Cfg, v *viper.Viper, rootKey string, curKey string) (cfg *Cfg, err error) {
+func parsingLoggerCfg(dfCfg *Cfg, v *viper.Viper, rootKey string, curKey string) (cfg *LoggerCfg, err error) {
 
-	if curKey != "" { curKey += "." }
+	cfg = &LoggerCfg{df: dfCfg}
 
-	cfg = dfCfg.Clone()
+	root := v.Get(rootKey + "." + curKey)
 
-	tagPath 		     	:= rootKey + "." + curKey + "tag"
-	dirPath 		     	:= rootKey + "." + curKey + "dir"
-	groupPath 	     	:= rootKey + "." + curKey + "group"
-	filenamePath	    := rootKey + "." + curKey + "filename"
-	maxsizePath       := rootKey + "." + curKey + "max_size"
-	maxBackupsPath    := rootKey + "." + curKey + "max_backups"
-	maxAgePath        := rootKey + "." + curKey + "max_age"
-	compressPath      := rootKey + "." + curKey + "compress"
-	levelPath         := rootKey + "." + curKey + "level"
-	stackLevelPath    := rootKey + "." + curKey + "stack_level"
-	colorPath         := rootKey + "." + curKey + "color"
+	switch obj := root.(type) {
 
-	if v.IsSet(tagPath)  			 {cfg.Tag,     _, err = getMultiStringFromObj(v.Get(tagPath)     ); if err != nil {return nil, fmt.Errorf("parsing tag failed: %s", err)}}
-	if v.IsSet(dirPath)  			 {cfg.Dir,     _, err = getMultiStringFromObj(v.Get(dirPath)     ); if err != nil {return nil, fmt.Errorf("parsing dir failed: %s", err)}}
-	if v.IsSet(groupPath)			 {cfg.Group,   _, err = getMultiStringFromObj(v.Get(groupPath)   ); if err != nil {return nil, fmt.Errorf("parsing group failed: %s", err)}}
-	if v.IsSet(filenamePath)	 {cfg.FileName,_, err = getMultiStringFromObj(v.Get(filenamePath)); if err != nil {return nil, fmt.Errorf("parsing filename failed: %s", err)}}
-	if v.IsSet(maxsizePath)		 {cfg.MaxSize   , err = getIntFromObj(v.Get(maxsizePath)   ); if err != nil { return nil, fmt.Errorf("parsing max_size failed: %s", err) } }
-	if v.IsSet(maxBackupsPath) {cfg.MaxBackups, err = getIntFromObj(v.Get(maxBackupsPath)); if err != nil { return nil, fmt.Errorf("parsing max_backups failed: %s", err) } }
-	if v.IsSet(maxAgePath)		 {cfg.MaxAge    , err = getIntFromObj(v.Get(maxAgePath)    ); if err != nil { return nil, fmt.Errorf("parsing max_age failed: %s", err) } }
-	if v.IsSet(compressPath)	 {cfg.Compress,_, err = getMultiBoolFromObj(v.Get(compressPath)); if err != nil { return nil, fmt.Errorf("parsing compress failed: %s", err) } }
-
-	var errs []string
-	
-	if v.IsSet(levelPath) {
-		if cfg.ConsoleLevel, cfg.FileLevel, err = getMultiStringFromObj(v.Get(levelPath)); err != nil {
-			errs = append(errs, fmt.Sprintf("parsing level failed: %s", err))
+	case []interface{}: 
+		for idx, iter := range obj {
+			curObj, ok := iter.(map[string]interface{})
+			if !ok {
+				return nil, fmt.Errorf("invalid val type in %s.%s[%d], need a map[string]interface{}", rootKey, curKey, idx)
+			}
+			logCfg, err := parsingLogCfg(dfCfg, curObj)
+			if err != nil {
+				return nil, err
+			}
+			cfg.cfgs = append(cfg.cfgs, logCfg)
 		}
-	}
-	if v.IsSet(stackLevelPath) {
-		if cfg.ConsoleStackLevel, cfg.FileStackLevel, err = getMultiStringFromObj(v.Get(stackLevelPath)); err != nil {
-			errs = append(errs, fmt.Sprintf("parsing stack_level failed: %s", err))
+
+	case map[string]interface{}:
+		logCfg, err := parsingLogCfg(dfCfg, obj)
+		if err != nil {
+			return nil, err
 		}
-	}
-	if v.IsSet(colorPath) {
-		if cfg.ConsoleColor, cfg.FileColor, err = getMultiBoolFromObj(v.Get(colorPath)); err != nil {
-			errs = append(errs, fmt.Sprintf("parsing color failed: %s", err))
-		}
+		cfg.cfgs = append(cfg.cfgs, logCfg)
 	}
 
-	if len(errs) > 0 {
-		err = fmt.Errorf("%s", strings.Join(errs, " | "))
-		return nil, err
-	}
-	if err = cfg.checkAndValidate(); err != nil {
-		return nil, err
+	if len(cfg.cfgs) == 0 {
+		return nil, fmt.Errorf("can not found any log configs")
 	}
 
 	return cfg, nil
 }
 
+func parsingLogCfg(dfCfg *Cfg, obj map[string]interface{})(cfg *LogCfg, err error){
 
-func parsingColorStr(obj interface{}) (val colorSwitch, err error) {
+	cfg = dfCfg.genLogCfg()
+
+	tagPath 		     	:= "tag"
+	dirPath 		     	:= "dir"
+	groupPath 	     	:= "group"
+	filenamePath	    := "filename"
+	maxsizePath       := "max_size"
+	maxBackupPath     := "max_backup"
+	maxAgePath        := "max_age"
+	compressPath      := "compress"
+	levelPath         := "level"
+	stackLevelPath    := "stack_level"
+	colorPath         := "color"
+	streamPath        := "stream"
+
+	if tag,       ok := obj[tagPath];       ok {cfg.Tag,      _, err = getMultiStringFromObj(tag     ); if err != nil {return nil, fmt.Errorf("parsing tag failed: %s", err)}}
+	if dir,       ok := obj[dirPath];       ok {cfg.Dir,      _, err = getMultiStringFromObj(dir     ); if err != nil {return nil, fmt.Errorf("parsing dir failed: %s", err)}}
+	if group,     ok := obj[groupPath];     ok {cfg.Group,    _, err = getMultiStringFromObj(group   ); if err != nil {return nil, fmt.Errorf("parsing group failed: %s", err)}}
+	if filename,  ok := obj[filenamePath];  ok {cfg.FileName, _, err = getMultiStringFromObj(filename); if err != nil {return nil, fmt.Errorf("parsing filename failed: %s", err)}}
+ 	if maxsize,   ok := obj[maxsizePath];   ok {cfg.MaxSize,     err = getIntFromObj(maxsize  );        if err != nil {return nil, fmt.Errorf("parsing max_size failed: %s", err)}} 
+ 	if maxBackup, ok := obj[maxBackupPath]; ok {cfg.MaxBackup,   err = getIntFromObj(maxBackup);        if err != nil {return nil, fmt.Errorf("parsing max_backup failed: %s", err)}} 
+ 	if maxAge,    ok := obj[maxAgePath];    ok {cfg.MaxAge,      err = getIntFromObj(maxAge   );        if err != nil {return nil, fmt.Errorf("parsing max_age failed: %s", err)}} 
+	if compress,  ok := obj[compressPath];  ok {cfg.Compress, _, err = getMultiBoolFromObj(compress );  if err != nil {return nil, fmt.Errorf("parsing compress failed: %s", err)}} 
+	if level,     ok := obj[levelPath];     ok {cfg.Level,       err = parsingLevel(level);             if err != nil {return nil, fmt.Errorf("parsing level failed: %s", err)}}
+	if slevel,    ok := obj[stackLevelPath];ok {cfg.StackLevel,  err = parsingLevel(slevel);            if err != nil {return nil, fmt.Errorf("parsing stack_level failed: %s", err)}}
+	if color,     ok := obj[colorPath];     ok {cfg.Color,       err = parsingColor(color);             if err != nil {return nil, fmt.Errorf("parsing color failed: %s", err)}}
+	if stream,    ok := obj[streamPath];    ok {cfg.Stream,      err = parsingStream(stream);           if err != nil {return nil, fmt.Errorf("parsing stream failed: %s", err)}}
+
+	return cfg, nil
+}
+
+type LevelEnablerFunc func(Level) bool
+
+// Enabled calls the wrapped function.
+func (f LevelEnablerFunc) Enabled(lvl Level) bool { return f(lvl) }
+
+func parsingLevel(obj interface{}) (val LevelEnabler, err error) {
+
+	l1, l2, err := getMultiStringFromObj(obj)
+	if  err != nil {
+		return LEVEL_NONE, err
+	}
+
+	l1l, err := getLevelByStr(l1)
+	if err != nil {
+		return LEVEL_NONE, err
+	}
+
+	if l2 == "" {
+		 return l1l, nil
+	}
+
+	l2l, err := getLevelByStr(l2)
+	if err != nil {
+		return LEVEL_NONE, err
+	}
+
+	if l1l > l2l {
+		return LEVEL_NONE, fmt.Errorf("invalid span from %s to %s", l1, l2)
+	}
+
+	return  LevelEnablerFunc(func(l Level) bool {
+		if l >= l1l && l <= l2l {
+			return true
+		}
+		return false
+	}), nil
+
+}
+
+func parsingColor(obj interface{}) (val colorSwitch, err error) {
 
 	if v, ok := obj.(bool); ok {
 		if v {
@@ -440,6 +527,23 @@ func parsingColorStr(obj interface{}) (val colorSwitch, err error) {
 	return ColorOff, fmt.Errorf("invalid type: %s", reflect.TypeOf(obj))
 }
 
+var _validStreams =  []string{"stdout", "STDOUT", "stderr", "STDERR", "1", "2"}
+
+func parsingStream(obj interface{})(val string, err error) {
+
+	val, ok := obj.(string)
+	if !ok {
+		return 
+	}
+
+  for _, valid := range _validStreams {
+		if val == valid{
+			return val, nil
+		}
+	}
+
+	return "", fmt.Errorf("unsupport stream '%s', you can set: %s", val, _validStreams)
+}
 
 func getRepresentPathValue(path string, name string) string {
 

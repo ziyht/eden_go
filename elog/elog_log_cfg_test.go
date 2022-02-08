@@ -18,7 +18,7 @@ func parsingCfgFromStr(str string)(*Cfg, error) {
 		return nil, err
 	}
 
-	return parsingCfg(&dfCfg, v, "elog", "")
+	return parsingDfCfg(&dfCfg, v, "elog", "")
 }
 
 func Test_parsingCfg(t *testing.T){
@@ -49,10 +49,10 @@ func Test_parsingCfg(t *testing.T){
 	if err != nil { t.Fatalf("err should not occor") }
 
 	cfg, err  = parsingCfgFromStr("elog:\n max_backups: 0")
-	if cfg.MaxBackups != 0 { t.Fatalf("val not match") }
+	if cfg.MaxBackup != 0 { t.Fatalf("val not match") }
 	if err != nil { t.Fatalf("err should not occor") }
 	cfg, err  = parsingCfgFromStr("elog:\n max_backups: 1024")
-	if cfg.MaxBackups  != 1024 { t.Fatalf("val not match") }
+	if cfg.MaxBackup  != 1024 { t.Fatalf("val not match") }
 	if err != nil { t.Fatalf("err should not occor") }
 
 	cfg, err  = parsingCfgFromStr("elog:\n max_age: 0")
@@ -70,17 +70,17 @@ func Test_parsingCfg(t *testing.T){
 	if err != nil { t.Fatalf("err should not occor") }
 
 	cfg, _  = parsingCfgFromStr("elog:\n color: false")
-	if cfg.ConsoleColor  != false { t.Fatalf("val not match") }
-	if cfg.FileColor     != false { t.Fatalf("val not match") }
+	if cfg.ConsoleColor  != ColorOff { t.Fatalf("val not match") }
+	if cfg.FileColor     != ColorOff { t.Fatalf("val not match") }
 	cfg, _  = parsingCfgFromStr("elog:\n color: true")
-	if cfg.ConsoleColor  != true { t.Fatalf("val not match") }
-	if cfg.FileColor     != true { t.Fatalf("val not match") }
+	if cfg.ConsoleColor  != ColorOn { t.Fatalf("val not match") }
+	if cfg.FileColor     != ColorOn { t.Fatalf("val not match") }
 	cfg, _  = parsingCfgFromStr("elog:\n color: [false, true]")
-	if cfg.ConsoleColor  != false { t.Fatalf("val not match") }
-	if cfg.FileColor     != true { t.Fatalf("val not match") }
+	if cfg.ConsoleColor  != ColorOff { t.Fatalf("val not match") }
+	if cfg.FileColor     != ColorOn { t.Fatalf("val not match") }
 	cfg, _  = parsingCfgFromStr("elog:\n color: [true, false]")
-	if cfg.ConsoleColor  != true { t.Fatalf("val not match") }
-	if cfg.FileColor     != false { t.Fatalf("val not match") }
+	if cfg.ConsoleColor  != ColorOn { t.Fatalf("val not match") }
+	if cfg.FileColor     != ColorOff { t.Fatalf("val not match") }
 }
 
 func compareCfg(a *Cfg, b *Cfg) error {
@@ -89,7 +89,7 @@ func compareCfg(a *Cfg, b *Cfg) error {
 	if a.Group             !=  b.Group            { return fmt.Errorf("Group not match") }
 	if a.FileName          !=  b.FileName         { return fmt.Errorf("FileName not match") }
 	if a.MaxSize           !=  b.MaxSize          { return fmt.Errorf("MaxSize not match") }
-	if a.MaxBackups        !=  b.MaxBackups       { return fmt.Errorf("MaxBackups not match") }
+	if a.MaxBackup         !=  b.MaxBackup        { return fmt.Errorf("MaxBackups not match") }
 	if a.MaxAge            !=  b.MaxAge           { return fmt.Errorf("MaxAge not match") }
 	if a.Compress          !=  b.Compress         { return fmt.Errorf("Compress not match") }
 	if a.ConsoleLevel      !=  b.ConsoleLevel     { return fmt.Errorf("ConsoleLevel not match") }
@@ -156,14 +156,14 @@ elog:
 	if dfcfg.Group             != "<HOSTNAME>" { t.Fatalf("val not match") }
 	if dfcfg.FileName          != "<LOG_NAME>" { t.Fatalf("val not match") }
 	if dfcfg.MaxSize           != 1 { t.Fatalf("val not match") }
-	if dfcfg.MaxBackups        != 1 { t.Fatalf("val not match") }
+	if dfcfg.MaxBackup         != 1 { t.Fatalf("val not match") }
 	if dfcfg.MaxAge            != 1 { t.Fatalf("val not match") }
 	if dfcfg.Compress          != true { t.Fatalf("val not match") }
-	if dfcfg.ConsoleLevel      != "info" { t.Fatalf("val not match") }
-	if dfcfg.FileLevel         != "info" { t.Fatalf("val not match") }
-	if dfcfg.ConsoleStackLevel != "warn" { t.Fatalf("val not match") }
-	if dfcfg.FileStackLevel    != "debug" { t.Fatalf("val not match") }
-	if dfcfg.ConsoleColor      != false { t.Fatalf("val not match") }
+	if dfcfg.ConsoleLevel      != LEVEL_INFO { t.Fatalf("val not match") }
+	if dfcfg.FileLevel         != LEVEL_INFO { t.Fatalf("val not match") }
+	if dfcfg.ConsoleStackLevel != LEVEL_WARN { t.Fatalf("val not match") }
+	if dfcfg.FileStackLevel    != LEVEL_DEBUG { t.Fatalf("val not match") }
+	if dfcfg.ConsoleColor      != ColorOff { t.Fatalf("val not match") }
 
 	cfg := cfgs["filename"]
 	if cfg != nil { t.Fatalf("should be nil") }

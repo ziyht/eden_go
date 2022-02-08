@@ -6,7 +6,7 @@ import (
 )
 
 
-func getEncoder(color bool, stacklevel Level) zapcore.Encoder {
+func getEncoder(color colorSwitch, stacklevel Level) zapcore.Encoder {
 	ecfg := zap.NewProductionEncoderConfig()
   ecfg.EncodeTime       = getTimeEncoder()
 	ecfg.EncodeLevel      = getLevelEncoder(color)

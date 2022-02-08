@@ -8,7 +8,7 @@ import (
 
 func getMultiBoolFromObj(obj interface{}) (b1 bool, b2 bool, err error) {
 	switch obj := obj.(type) {
-  case bool: return obj, obj, nil
+  case bool: return obj, false, nil
 	case []interface{}: 
 		if len(obj) == 0 { return false, false, fmt.Errorf("val not set")
 	  } else {
@@ -29,7 +29,7 @@ func getMultiBoolFromObj(obj interface{}) (b1 bool, b2 bool, err error) {
 
 func getMultiStringFromObj(obj interface{}) (s1 string, s2 string, err error) {
 	switch obj := obj.(type) {
-  case string: return obj, obj, nil
+  case string: return obj, "", nil
 	case []interface{}: 
 		if len(obj) == 0 { return "", "", fmt.Errorf("val not set")
 	  } else {

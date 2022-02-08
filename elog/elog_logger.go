@@ -12,7 +12,7 @@ import (
 // Elogger a instance to handle multi elogs, you can use it to make a new elog or get a exist one
 type Elogger struct {
 	name           string
-	cfg            *Cfg
+	cfg            *LoggerCfg
 	option         *option
 }
 
@@ -23,7 +23,7 @@ var (
 	mu       sync.Mutex
 )
 
-func newElogger(name string, cfg* Cfg) *Elogger {
+func newElogger(name string, cfg* LoggerCfg) *Elogger {
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -43,7 +43,7 @@ func newElogger(name string, cfg* Cfg) *Elogger {
 	return out
 }
 
-func genElogger(name string, cfg *Cfg) *Elogger {
+func genElogger(name string, cfg *LoggerCfg) *Elogger {
 
 	out := new(Elogger)
 
