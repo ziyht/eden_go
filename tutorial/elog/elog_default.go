@@ -2,14 +2,13 @@ package elog
 
 import (
 	"github.com/ziyht/eden_go/elog"
-	"fmt"
 )
 
 func runDefaultTutorial() {
 
 	logger := elog.Logger()
 	log := logger.Log()
-	fmt.Printf("%v\n", logger.Cfg())
+
 
 	syslog.Infof("----------------- runDefaultTutotial 1 ---------------")
 	log.Debugf("output debug")  // in default setting, it will not output

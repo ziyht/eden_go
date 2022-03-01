@@ -6,26 +6,28 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-type LevelEnabler interface {
-	Enabled(Level) bool
-}
 
 type Level zapcore.Level
 
-func (l Level) Enabled(lvl Level) bool {
-	return lvl >= l
+func (l Level) Enabled(lvl zapcore.Level) bool {
+	return Level(lvl) >= l
 }
+
+type LevelEnablerFunc func(zapcore.Level) bool
+
+// Enabled calls the wrapped function.
+func (f LevelEnablerFunc) Enabled(lvl zapcore.Level) bool { return f(lvl) }
 
 const (
 	LEVEL_DEBUG  = Level(zapcore.DebugLevel)
 	LEVEL_INFO   = Level(zapcore.InfoLevel)
 	LEVEL_WARN   = Level(zapcore.WarnLevel)
 	LEVEL_ERROR  = Level(zapcore.ErrorLevel)
-	LEVEL_FATAL  = Level(zapcore.FatalLevel)
 	LEVEL_DPANIC = Level(zapcore.DPanicLevel)
 	LEVEL_PANIC  = Level(zapcore.PanicLevel)
+	LEVEL_FATAL  = Level(zapcore.FatalLevel)
 	LEVEL_ALL    = LEVEL_DEBUG
-	LEVEL_NONE   = LEVEL_FATAL
+	LEVEL_NONE   = LEVEL_DPANIC
 	LEVEL_OFF    = LEVEL_FATAL + 1
 
 	LEVELS_DEBUG  = "debug"
@@ -90,4 +92,21 @@ func getTagByLevel(l Level) string {
 
 func getColoredTagByLevel(l Level) string {
 	return _levelTagsColored[l + 1]
+}
+
+func getLevelEnableFromLevelEnables(les []zapcore.LevelEnabler) zapcore.LevelEnabler {
+
+	bm := 0
+
+	for _, le := range les{
+		for i := int(LEVEL_DEBUG) + 1; i < int(LEVEL_FATAL) + 1; i ++ {
+			if le.Enabled(zapcore.Level(i)){
+				bm = bm | (1 << i)
+			}
+		}
+	}
+
+	return LevelEnablerFunc(func (l zapcore.Level) bool {
+		return bm & (1 << (int(l) + 1)) > 0
+	})
 }

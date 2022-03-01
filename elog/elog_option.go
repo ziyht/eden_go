@@ -1,16 +1,22 @@
 package elog
 
+import (
+	"strings"
+
+	"go.uber.org/zap/zapcore"
+)
+
 type option struct {
 	tags               []string
 	dir                  string
 	group                string
 	filename     	       string
-	consoleLevel 	       Level
-	consoleStackLevel    Level
-	fileLevel    	       Level
-	fileStackLevel       Level
-	fileColor            bool
-	consoleColor         bool
+	consoleLevel 	       zapcore.LevelEnabler
+	consoleStackLevel    zapcore.LevelEnabler
+	fileLevel    	       zapcore.LevelEnabler
+	fileStackLevel       zapcore.LevelEnabler
+	fileColor            colorSwitch
+	consoleColor         colorSwitch
 
 	reTagSet             bool
 	dirSet               bool
@@ -48,12 +54,12 @@ func (o *option)Group            (v string) *option {o.group             = v; o.
 //    <APP_NAME> -> binary file name of current application;
 //    <LOG_NAME> -> the name of current logger, in __default, it will set to elog;
 func (o *option)Filename         (v string) *option {o.filename          = v; o.filenameSet          = true; return o }
-func (o *option)FileLevel        (l Level)  *option {o.fileLevel         = l; o.fileLevelSet         = true; return o }
-func (o *option)ConsoleLevel     (l Level)  *option {o.consoleLevel      = l; o.consoleLevelSet      = true; return o}
-func (o *option)FileStackLevel   (l Level)  *option {o.fileStackLevel    = l; o.fileStackLevelSet    = true; return o}
-func (o *option)ConsoleStackLevel(l Level)  *option {o.consoleStackLevel = l; o.consoleStackLevelSet = true; return o}
-func (o *option)ConsoleColor     (b bool )  *option {o.consoleColor      = b; o.consoleColorSet      = true; return o}
-func (o *option)FileColor        (b bool )  *option {o.fileColor         = b; o.fileColorSet         = true; return o}
+func (o *option)FileLevel        (l zapcore.LevelEnabler)  *option {o.fileLevel         = l; o.fileLevelSet         = true; return o }
+func (o *option)ConsoleLevel     (l zapcore.LevelEnabler)  *option {o.consoleLevel      = l; o.consoleLevelSet      = true; return o}
+func (o *option)FileStackLevel   (l zapcore.LevelEnabler)  *option {o.fileStackLevel    = l; o.fileStackLevelSet    = true; return o}
+func (o *option)ConsoleStackLevel(l zapcore.LevelEnabler)  *option {o.consoleStackLevel = l; o.consoleStackLevelSet = true; return o}
+func (o *option)ConsoleColor     (b colorSwitch )  *option {o.consoleColor      = b; o.consoleColorSet      = true; return o}
+func (o *option)FileColor        (b colorSwitch )  *option {o.fileColor         = b; o.fileColorSet         = true; return o}
 
 type optionFunc func(*option)
 func (update optionFunc) apply(op *option) {
@@ -99,10 +105,10 @@ func (opt *option)applyCfg(cfg *Cfg)*option{
 	if !opt.groupSet             { opt.group        = cfg.Group    }
 	if !opt.filenameSet          { opt.filename     = cfg.FileName }
 
-	if !opt.consoleLevelSet      { opt.consoleLevel, _      = getLevelByStr(cfg.ConsoleLevel) }
-	if !opt.consoleStackLevelSet { opt.consoleStackLevel, _ = getLevelByStr(cfg.ConsoleStackLevel) }
-	if !opt.fileLevelSet         { opt.fileLevel, _         = getLevelByStr(cfg.FileLevel)}
-	if !opt.fileStackLevelSet    { opt.fileStackLevel, _    = getLevelByStr(cfg.FileStackLevel) }
+	if !opt.consoleLevelSet      { opt.consoleLevel      = cfg.ConsoleLevel }
+	if !opt.consoleStackLevelSet { opt.consoleStackLevel = cfg.ConsoleStackLevel }
+	if !opt.fileLevelSet         { opt.fileLevel         = cfg.FileLevel}
+	if !opt.fileStackLevelSet    { opt.fileStackLevel    = cfg.FileStackLevel }
 	
 	if !opt.fileColorSet         { opt.fileColor    = cfg.FileColor    }
   if !opt.consoleColorSet      { opt.consoleColor = cfg.ConsoleColor }
@@ -110,5 +116,27 @@ func (opt *option)applyCfg(cfg *Cfg)*option{
 	return opt
 }
 
+func (opt *option)applyToLogCfg(cfg *LogCfg)*LogCfg{
 
+	cfg = cfg.Clone()
+
+	if opt.reTagSet               { cfg.Tag  = strings.Join(opt.tags, ".")
+	} else if len(opt.tags) > 0   { cfg.Tag += strings.Join(opt.tags, ".")}
+
+	if cfg.file {
+		if opt.dirSet               { cfg.Dir        = opt.dir      }
+		if opt.groupSet             { cfg.Group      = opt.group    }
+		if opt.filenameSet          { cfg.FileName   = opt.filename }
+		if opt.fileLevelSet         { cfg.Level      = opt.fileLevel }
+		if opt.fileStackLevelSet    { cfg.StackLevel = opt.fileStackLevel }
+		if opt.fileColorSet         { cfg.Color      = opt.fileColor }
+	} else {
+		if opt.filenameSet          { cfg.FileName   = opt.filename }
+		if opt.consoleLevelSet      { cfg.Level      = opt.consoleLevel }
+		if opt.consoleStackLevelSet { cfg.StackLevel = opt.consoleStackLevel }
+		if opt.consoleColorSet      { cfg.Color      = opt.consoleColor }
+	}
+
+	return cfg
+}
 

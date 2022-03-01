@@ -16,16 +16,20 @@ var (
 	fileWritersMu sync.Mutex
 )
 
-func getConsoleWriter(id int) zapcore.WriteSyncer {
+func getConsoleWriter(stream string) zapcore.WriteSyncer {
 
-	if id == 2 { return stderrConsoleWriter }
-	if id != 1 {
-		syslog.Warnf("invalid id(%d), now only support 1: stdout, 2: stderr", id)
-	} 
+	if stream == "STDOUT" || stream == "stdout"  || stream == "1" {
+		return stdoutConsoleWriter
+	} else if stream == "STDERR" || stream == "stderr" || stream == "2" {
+		return stderrConsoleWriter
+	}
+
+	syslog.Warnf("invalid stream(%s), now only support 1: stdout, 2: stderr", stream)
+ 
 	return stdoutConsoleWriter
 }
 
-func getFileWriter(path string, cfg *Cfg) zapcore.WriteSyncer {
+func getFileWriter(path string, cfg *LogCfg) zapcore.WriteSyncer {
 
 	fileWritersMu.Lock()
 	defer fileWritersMu.Unlock()
@@ -35,7 +39,7 @@ func getFileWriter(path string, cfg *Cfg) zapcore.WriteSyncer {
 		fileWriter = zapcore.AddSync(&lumberjack.Logger{
 			Filename:   path,
 			MaxSize:    cfg.MaxSize,
-			MaxBackups: cfg.MaxBackups,
+			MaxBackups: cfg.MaxBackup,
 			MaxAge:     cfg.MaxAge,
 			Compress:   cfg.Compress,
 		})

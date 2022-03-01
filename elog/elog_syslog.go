@@ -14,19 +14,19 @@ func genSyslogCfg() Cfg {
 		Group            : "<APP_NAME>",
 		FileName         : "",
 		MaxSize          : 100,
-		MaxBackups       : 7,
+		MaxBackup        : 7,
 		MaxAge           : 7,
 		Compress         : false,
-		ConsoleLevel     : LEVELS_DEBUG,
-		FileLevel        : LEVELS_DEBUG,
-		ConsoleStackLevel: LEVELS_WARN,
-		FileStackLevel   : LEVELS_WARN,
-		ConsoleColor     : true,
-		FileColor        : true,
+		ConsoleLevel     : LEVEL_DEBUG,
+		FileLevel        : LEVEL_DEBUG,
+		ConsoleStackLevel: LEVEL_WARN,
+		FileStackLevel   : LEVEL_WARN,
+		ConsoleColor     : ColorAuto,
+		FileColor        : ColorAuto,
 	}
 }
 
 func initSyslog() {
-  syslogger = genElogger("syslog", &syslogCfg)
+  syslogger = newElogger("syslog", &syslogCfg)
 	syslog = syslogger.getLog()
 }

@@ -13,7 +13,7 @@
 #       respectively 
 #
 
-elog:
+elog_:
   dir           : logs                    # default logs
   group         : <HOSTNAME>              # default <HOSTNAME>, if set, real dir will be $Dir/$Group
   filename      : <LOG_NAME>              # default <LOG_NAME>, will not write to file if set empty, real file path will be $Dir/$Group/$File
@@ -33,7 +33,7 @@ elog:
   level_debug:
     level   : debug
 
-elogv2:
+elog:
   
   dir           : logs                # default logs
   group         : <HOSTNAME>          # default <HOSTNAME>, if set, real dir will be $Dir/$Group
@@ -45,8 +45,8 @@ elogv2:
   f_level       : debug               # default debug, for file, valid value is [debug, info, warn, error, fatal, panic]
   f_stack_level : warn                # default warn , for file, valid value is [debug, info, warn, error, fatal, panic]
   f_color       : false               # default false, for file
-  c_level       : info                # default info , for console, valid value is [debug, info, warn, error, fatal, panic]
-  c_stack_level : error               # default error, for console, valid value is [debug, info, warn, error, fatal, panic]
+  c_level       : debug                # default info , for console, valid value is [debug, info, warn, error, fatal, panic]
+  c_stack_level : warn               # default error, for console, valid value is [debug, info, warn, error, fatal, panic]
   c_color       : true                # default true , for console
 
   default:

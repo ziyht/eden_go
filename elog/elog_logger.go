@@ -12,7 +12,8 @@ import (
 // Elogger a instance to handle multi elogs, you can use it to make a new elog or get a exist one
 type Elogger struct {
 	name           string
-	cfg            *LoggerCfg
+	cfg1           *Cfg
+	cfg2           *LoggerCfg
 	option         *option
 }
 
@@ -23,7 +24,7 @@ var (
 	mu       sync.Mutex
 )
 
-func newElogger(name string, cfg* LoggerCfg) *Elogger {
+func newElogger(name string, cfg* Cfg) *Elogger {
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -36,20 +37,51 @@ func newElogger(name string, cfg* LoggerCfg) *Elogger {
 		syslog.Warnf("old logger named '%s' found, will be replace by new one", name)
 	}
 
-	out := genElogger(name, cfg)
+	out := genEloggerFromCfg(name, cfg)
 
 	loggers[name] = out
 
 	return out
 }
 
-func genElogger(name string, cfg *LoggerCfg) *Elogger {
+func newEloggerV2(name string, cfg* LoggerCfg) *Elogger {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if err := cfg.validateAndCheck(); err != nil {
+		syslog.Fatalf("validateAndCheck cfg failed: %s", err)
+		return nil
+	}
+
+	if _, exist := loggers[name]; exist {
+		syslog.Warnf("old logger named '%s' found, will be replace by new one", name)
+	}
+
+	out := genEloggerFromLoggerCfg(name, cfg)
+
+	loggers[name] = out
+
+	return out
+}
+
+func genEloggerFromCfg(name string, cfg *Cfg) *Elogger {
 
 	out := new(Elogger)
 
 	out.name           = name
-	out.cfg            = cfg
+	out.cfg1           = cfg
+	out.cfg2           = cfg.genLoggerCfg()
 	out.option         = newOpt().applyCfg(cfg)
+
+	return out
+}
+
+func genEloggerFromLoggerCfg(name string, cfg *LoggerCfg) *Elogger {
+
+	out := new(Elogger)
+
+	out.name           = name
+	out.cfg2           = cfg
 
 	return out
 }
@@ -86,51 +118,52 @@ func getLogger(name ...string) *Elogger {
 // if not set, it will using cfg in logger
 func (l *Elogger)getLog(opts ...*option) Elog {
 
-	console_needed := false
-	file_needed    := false
-
-	opt := l.option.clone().applyOptions(opts...)
-	
 	var cores []zapcore.Core
+	var sles []zapcore.LevelEnabler
+	var tag string
 
-	// setting console output core
-	cores = append(cores, l.getConsoleCore(1, opt))
-	console_needed = true
+	for _, cfg := range l.cfg2.logs {
 
-	// setting output file core if neededs
-	if opt.filename != "" {
-		path := opt.filename
-
-		if !filepath.IsAbs(opt.filename) {
-			path = filepath.Join(l.cfg.Dir, l.cfg.Group, opt.filename)
-			if !strings.HasSuffix(opt.filename, ".log"){
-				path += ".log"
-			}
+		sles = append(sles, cfg.StackLevel)
+		if tag == ""{
+			tag = cfg.Tag
 		}
 
-		file_needed = true
-		cores = append(cores, l.getFileCore(getRepresentPathValue(path, l.name), opt))
-	}
-	
-	// get lowest stack level
-	stackLevel := LEVEL_NONE
-	if console_needed && stackLevel > opt.consoleStackLevel { stackLevel = opt.consoleStackLevel }
-	if file_needed    && stackLevel > opt.fileStackLevel    { stackLevel = opt.fileStackLevel }
+		if cfg.file {
+			if cfg.FileName == ""{
+				continue
+			}
+			path := cfg.FileName
 
-	logger := zap.New(zapcore.NewTee(cores...), zap.AddStacktrace(zapcore.Level(stackLevel)))
-	if len(opt.tags) > 0 {
-		logger = logger.Named("[" + strings.Join(opt.tags, ".") + "]")
+			if !filepath.IsAbs(cfg.FileName){
+				path = filepath.Join(cfg.Dir, cfg.Group, cfg.FileName)
+				if !strings.HasSuffix(cfg.FileName, ".log"){
+					path += ".log"
+				}
+			}
+
+			cores = append(cores, l.getFileCore(getRepresentPathValue(path, l.name), cfg))
+		} else {
+			cores = append(cores, l.getConsoleCore(cfg))
+		}		
+	}
+
+	// get lowest stack level
+	stackLevel := getLevelEnableFromLevelEnables(sles)
+	logger := zap.New(zapcore.NewTee(cores...), zap.AddStacktrace(stackLevel))
+	if tag != "" {
+		logger = logger.Named("[" + tag + "]")
 	}
 
 	return logger.Sugar()
 }
 
-func (l *Elogger)getConsoleCore(fd int, opt *option) zapcore.Core{
-	return zapcore.NewCore(getEncoder(opt.consoleColor, opt.consoleStackLevel), getConsoleWriter(fd), zapcore.Level(opt.consoleLevel))
+func (l *Elogger)getConsoleCore(cfg *LogCfg) zapcore.Core{
+	return zapcore.NewCore(getEncoder(cfg.Color, cfg.StackLevel), getConsoleWriter(cfg.Console), cfg.Level)
 }
 
-func (l *Elogger)getFileCore(path string, opt *option) zapcore.Core{
-	return zapcore.NewCore(getEncoder(l.cfg.FileColor, opt.fileStackLevel), getFileWriter(path, l.cfg), zapcore.Level(opt.fileLevel))
+func (l *Elogger)getFileCore(path string, cfg *LogCfg) zapcore.Core{
+	return zapcore.NewCore(getEncoder(cfg.Color, cfg.StackLevel), getFileWriter(path, cfg), cfg.Level)
 }
 
 func initDfLogger(cfg *Cfg) {

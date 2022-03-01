@@ -9,12 +9,12 @@ var (
 // you can get the sample cfg content from SampleCfg()
 func InitFromCfgFile(path string) {
 
-	cfgs := readCfgFromFile(path)
+	cfgs := cfgMan.parsingCfgsFromFile(path)
 
 	initDfLogger(&dfCfg)
 
 	for name, cfg := range cfgs {
-		NewLogger(name, cfg)
+		newEloggerV2(name, cfg)
 	}
 }
 
@@ -61,11 +61,6 @@ func Opt() *option {
 //   - every call will create a new instance, recommend cache it first and then use it
 func (l *Elogger)Log(opts ...*option) Elog {
 	return l.getLog(opts...)
-}
-
-// return the Cfg of logger
-func (l *Elogger)Cfg() *Cfg {
-	return l.cfg.Clone()
 }
 
 // return the name of logger

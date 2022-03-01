@@ -37,7 +37,7 @@ type consoleEncoder struct {
 // Note that although the console encoder doesn't use the keys specified in the
 // encoder configuration, it will omit any element whose key is set to the empty
 // string.
-func NewConsoleEncoder(cfg zapcore.EncoderConfig, stackLevel Level) zapcore.Encoder {
+func NewConsoleEncoder(cfg zapcore.EncoderConfig, stackLevel zapcore.LevelEnabler) zapcore.Encoder {
 	if cfg.ConsoleSeparator == "" {
 		// Use a default delimiter of '\t' for backwards compatibility
 		cfg.ConsoleSeparator = "\t"
@@ -102,7 +102,7 @@ func (c consoleEncoder) EncodeEntry(ent zapcore.Entry, fields []zapcore.Field) (
 
 	// If there's no stacktrace key, honor that; this allows users to force
 	// single-line output.
-	if ent.Stack != "" && c.StacktraceKey != "" && zapcore.Level(c.stackLevel).Enabled(ent.Level) {
+	if ent.Stack != "" && c.StacktraceKey != "" && c.stackLevel.Enabled(ent.Level) {
 		line.AppendByte('\n')
 		line.AppendString(ent.Stack)
 	}

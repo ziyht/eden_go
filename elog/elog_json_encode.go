@@ -43,7 +43,7 @@ type jsonEncoder struct {
 	buf            *buffer.Buffer
 	spaced         bool // include spaces after colons and commas
 	openNamespaces int
-	stackLevel     Level
+	stackLevel     zapcore.LevelEnabler
 
 	// for encoding generic values by reflection
 	reflectBuf *buffer.Buffer
@@ -60,11 +60,11 @@ type jsonEncoder struct {
 // libraries will ignore duplicate key-value pairs (typically keeping the last
 // pair) when unmarshaling, but users should attempt to avoid adding duplicate
 // keys.
-func NewJSONEncoder(cfg zapcore.EncoderConfig, stackLevel Level) zapcore.Encoder {
+func NewJSONEncoder(cfg zapcore.EncoderConfig, stackLevel zapcore.LevelEnabler) zapcore.Encoder {
 	return newJSONEncoder(cfg, false, stackLevel)
 }
 
-func newJSONEncoder(cfg zapcore.EncoderConfig, spaced bool, stackLevel Level) *jsonEncoder {
+func newJSONEncoder(cfg zapcore.EncoderConfig, spaced bool, stackLevel zapcore.LevelEnabler) *jsonEncoder {
 	return &jsonEncoder{
 		EncoderConfig: &cfg,
 		buf:           bufferpool.Get(),
@@ -384,7 +384,7 @@ func (enc *jsonEncoder) EncodeEntry(ent zapcore.Entry, fields []zapcore.Field) (
 	}
 	addFields(final, fields)
 	final.closeOpenNamespaces()
-	if ent.Stack != "" && final.StacktraceKey != "" && zapcore.Level(enc.stackLevel).Enabled(ent.Level) {
+	if ent.Stack != "" && final.StacktraceKey != "" && enc.stackLevel.Enabled(ent.Level) {
 		final.AddString(final.StacktraceKey, ent.Stack)
 	}
 	final.buf.AppendByte('}')
