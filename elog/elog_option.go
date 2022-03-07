@@ -81,7 +81,7 @@ func (o *option)applyOptions(ns... *option)*option{
 
 func (o *option)applyOption(n *option) *option {
 	if !n.reTagSet            { o.tags = append(o.tags, n.tags...)
-	} else                    { o.tags = n.tags[:]}
+	} else                    { o.tags = n.tags[:]; o.reTagSet = true }
 
 	if n.dirSet               { o.Dir     (n.dir)      }
 	if n.groupSet             { o.Group   (n.group)    }
@@ -121,7 +121,12 @@ func (opt *option)applyToLogCfg(cfg *LogCfg)*LogCfg{
 	cfg = cfg.Clone()
 
 	if opt.reTagSet               { cfg.Tag  = strings.Join(opt.tags, ".")
-	} else if len(opt.tags) > 0   { cfg.Tag += strings.Join(opt.tags, ".")}
+	} else if len(opt.tags) > 0   { 
+		if cfg.Tag != "" { 
+			cfg.Tag = cfg.Tag + "."
+		}
+		cfg.Tag += strings.Join(opt.tags, ".")
+	}
 
 	if cfg.file {
 		if opt.dirSet               { cfg.Dir        = opt.dir      }

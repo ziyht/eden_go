@@ -59,7 +59,9 @@ func newEloggerV2(name string, cfg* LoggerCfg) *Elogger {
 
 	out := genEloggerFromLoggerCfg(name, cfg)
 
-	loggers[name] = out
+	if name != "" {
+		loggers[name] = out
+	}
 
 	return out
 }
@@ -122,7 +124,11 @@ func (l *Elogger)getLog(opts ...*option) Elog {
 	var sles []zapcore.LevelEnabler
 	var tag string
 
+	opt := newOpt().applyOptions(opts...)
+	
 	for _, cfg := range l.cfg2.logs {
+
+		cfg = opt.applyToLogCfg(cfg)
 
 		sles = append(sles, cfg.StackLevel)
 		if tag == ""{

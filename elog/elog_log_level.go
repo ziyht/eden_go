@@ -34,17 +34,17 @@ const (
 	LEVELS_INFO   = "info"
 	LEVELS_WARN   = "warn"
 	LEVELS_ERROR  = "error"
-	LEVELS_FATAL  = "fatal"
 	LEVELS_DPANIC = "dpanic"
 	LEVELS_PANIC  = "panic"
+	LEVELS_FATAL  = "fatal"
 
 	LEVELT_DEBUG  = "DBG"
 	LEVELT_INFO   = "INF"
 	LEVELT_WARN   = "WRN"
 	LEVELT_ERROR  = "ERR"
-	LEVELT_FATAL  = "FTL"
 	LEVELT_DPANIC = "DPN"
 	LEVELT_PANIC  = "PNC"	
+	LEVELT_FATAL  = "FTL"
 )
 
 var (
@@ -56,9 +56,9 @@ var _levelTags = [...]string {
 	LEVELT_INFO, 
 	LEVELT_WARN,
 	LEVELT_ERROR,
-	LEVELT_FATAL,
 	LEVELT_DPANIC,
 	LEVELT_PANIC,
+	LEVELT_FATAL,
 }
 
 var _levelTagsColored = [...]string {
@@ -66,9 +66,9 @@ var _levelTagsColored = [...]string {
   getColoredStr(getColorByLevel(LEVEL_INFO  ), LEVELT_INFO),
   getColoredStr(getColorByLevel(LEVEL_WARN  ), LEVELT_WARN),
   getColoredStr(getColorByLevel(LEVEL_ERROR ), LEVELT_ERROR),
-  getColoredStr(getColorByLevel(LEVEL_FATAL ), LEVELT_FATAL),
   getColoredStr(getColorByLevel(LEVEL_DPANIC), LEVELT_DPANIC),
   getColoredStr(getColorByLevel(LEVEL_PANIC ), LEVELT_PANIC),
+  getColoredStr(getColorByLevel(LEVEL_FATAL ), LEVELT_FATAL),
 }
 
 func getLevelByStr(levelStr string) (Level, error) {
@@ -100,7 +100,7 @@ func getLevelEnableFromLevelEnables(les []zapcore.LevelEnabler) zapcore.LevelEna
 
 	for _, le := range les{
 		for i := int(LEVEL_DEBUG) + 1; i < int(LEVEL_FATAL) + 1; i ++ {
-			if le.Enabled(zapcore.Level(i)){
+			if le.Enabled(zapcore.Level(i - 1)){
 				bm = bm | (1 << i)
 			}
 		}

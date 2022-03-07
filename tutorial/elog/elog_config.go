@@ -6,7 +6,7 @@ import (
 
 func runConfigTutorial() {
 
-	elog.InitFromCfgFile("config/elog.yml")
+	elog.InitFromFile("config/elog.yml")
 
 	syslog.Infof("----------------- runConfigTutorial: default logger ---------------")
 	log := elog.Logger().Log().Named("[default]")

@@ -178,7 +178,7 @@ func TestYmlLogger(t *testing.T){
 
 	os.Chdir("../")
 
-	InitFromCfgFile("./config/elog.yml")
+	InitFromFile("./config/elog.yml")
 
 	log := Log()
 	log.Debugf("dbg")
