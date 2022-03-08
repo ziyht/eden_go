@@ -4,10 +4,11 @@ import "github.com/ziyht/eden_go/elog"
 
 func runInterfaceTutorial(){
 
-	interfaceTagTutorail()
-	interfaceLevelTutorail()
-	interfaceMultiFileTutorail()
-	interfaceSLevelTutorail()
+	// interfaceTagTutorail()
+	// interfaceLevelTutorail()
+	// interfaceMultiFileTutorail()
+	// interfaceSLevelTutorail()
+	interfaceColorTutorail()
 }
 
 func interfaceTagTutorail(){
@@ -151,6 +152,54 @@ func interfaceSLevelTutorail(){
 			"level": "debug",
 			"slevel": []string{"info", "warn"},
 		},	
+	})
+	log = logger.Log()
+  log.Debugf("output debug")  // in default setting, it will not output
+	log.Infof( "output info")
+	log.Warnf( "output warn")
+	log.Errorf("output error")
+}
+
+func interfaceColorTutorail(){
+
+	logger := elog.LoggerFromInterface([]interface{}{
+		map[string]interface{}{
+			"tag"    : "interfaceColorTutorail.color=false",
+			"console": "stdout",
+			"level"  : "debug",
+			"color"  : "false",
+			"slevel" : "fatal",
+		},
+	})
+	log := logger.Log()
+  log.Debugf("output debug")  // in default setting, it will not output
+	log.Infof( "output info")
+	log.Warnf( "output warn")
+	log.Errorf("output error")
+
+	logger = elog.LoggerFromInterface([]interface{}{
+		map[string]interface{}{
+			"tag"    : "interfaceColorTutorail.color=true",
+			"console": "stdout",
+			"level"  : "debug",
+			"color"  : "true",
+			"slevel" : "fatal",
+		},
+	})
+	log = logger.Log()
+  log.Debugf("output debug")  // in default setting, it will not output
+	log.Infof( "output info")
+	log.Warnf( "output warn")
+	log.Errorf("output error")
+
+	logger = elog.LoggerFromInterface([]interface{}{
+		map[string]interface{}{
+			"tag"    : "interfaceColorTutorail.color=auto",
+			"console": "stdout",
+			"level"  : "debug",
+			"color"  : "auto",
+			"slevel" : "fatal",
+		},
 	})
 	log = logger.Log()
   log.Debugf("output debug")  // in default setting, it will not output

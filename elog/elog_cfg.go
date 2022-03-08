@@ -30,7 +30,7 @@ elog:
   dir        : logs                # default logs
   group      : <HOSTNAME>          # default <HOSTNAME>, if set, real dir will be $Dir/$Group
   filename   : <APP>_<LOG>         # default <LOG>, will not write to file if set empty, real file path will be $Dir/$Group/$File
-	console    : "stdout"            # default stdout, you can set stderr instead
+  console    : stdout              # default stdout, you can set stderr instead
   max_size   : 100                 # default 100, unit MB
   max_backup : 7                   # default 7
   max_age    : 7                   # default 7
@@ -42,15 +42,17 @@ elog:
   c_slevel   : warn                # default error, stack level for console, valid value is [debug, info, warn, error, fatal, panic]
   c_color    : true                # default auto ,       color for console, valid value is [auto, true, false]
 
-	# mode 1
+  # mode 1
   log1:
-	  # filename: <APP>_<LOG>        # if not set, will inherit from default value set in elog.filename
-		c_level:  info
-		f_level:  debug       
+    # filename: <APP>_<LOG>        # if not set, will inherit from default value set in elog.filename
+    tag    :  log1
+    c_level:  info
+    f_level:  debug       
 
-	# mode 2
+  # mode 2
   log2:
-  - name        : console             # not used now
+  - tag         : log2                # first no-empty tag will take effect, nexts will be skipped
+    name        : console             # not used now
     console     : stdout              # console setting
     level       : info                # log level
     slevel      : error               # stack level
@@ -67,21 +69,22 @@ elog:
     slevel      : warn                # default warn , for file, valid value is [debug, info, warn, error, fatal, panic]
     color       : false               # default false, for file
 
-	# mode 2
+  # mode 2
   multi_file:
-	- filename: <APP>_debug
-		level   : [ debug, debug ]
-	- filename: <APP>_info
-		level   : [ info, info ]
-	- filename: <APP>_warn
-		level   : [ warn, warn ]
-	- filename: <APP>_err
-		level   : [ error, error ]
+  - tag     : multi_file
+    filename: <APP>_<LOG>_debug
+    level   : [ debug, debug ]
+  - filename: <APP>_<LOG>_info
+    level   : [ info, info ]
+  - filename: <APP>_<LOG>_warn
+    level   : [ warn, warn ]
+  - filename: <APP>_<LOG>_err
+    level   : [ error, error ]
 
   only_console:
   - console: stdout
-	  level  : info
-		slevel : error
+    level  : info
+    slevel : error
 `
 
 const (
@@ -135,6 +138,8 @@ var skipKeys = map[string]bool{
 		maxBackupKey   : true,
 		maxAgeKey      : true,
 		compressKey    : true,
+		colorKey       : true,
+		consoleKey     : true,
 		c_levelKey     : true,
 		c_stackLevelKey: true,
 		c_colorKey     : true,
@@ -329,23 +334,23 @@ func parsingCfgsFromFile(file string) (cfgs map[string]*LoggerCfg) {
 
 	path, err := filepath.Abs(file); 
 	if err != nil {
-		syslog.Fatalf("readCfgFromFile failed from file '%s':\n %s", file, err)
+		syslog.Fatalf("readCfgFromFile failed from file '%s': %s", file, err)
 	}
 
 	ext := filepath.Ext(path)
 	if len(ext) > 1 {
 		ext = ext[1:]
 	} else {
-		syslog.Fatalf("readCfgFromFile failed from file '%s':\n can not found ext in file like .yml .ini ...", file)
+		syslog.Fatalf("readCfgFromFile failed from file '%s': can not found ext in file like .yml .ini ...", file)
 	}
 
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
-	 	syslog.Fatalf("readCfgFromFile failed from file '%s':\n %s", file, err)
+	 	syslog.Fatalf("readCfgFromFile failed from file '%s': %s", file, err)
 	}
 
 	if cfgs, err = parsingCfgsFromStr(string(data), ext); err != nil {
-		syslog.Fatalf("readCfgFromFile failed from file '%s':\n %s", file, err)
+		syslog.Fatalf("readCfgFromFile failed from file '%s': %s", file, err)
 	}
 
 	return cfgs
@@ -409,7 +414,7 @@ func getViperFromFile(file string)(*viper.Viper, error){
 	if len(ext) > 1 {
 		ext = ext[1:]
 	} else {
-		return nil, fmt.Errorf("readCfgFromFile failed from file '%s': can not found ext in file like .yml .ini ...", file)
+		return nil, fmt.Errorf("readCfgFromFile failed from file '%s': can not found ext in filename like %s", file, []string{"json", "toml", "yaml", "yml", "properties", "props", "prop", "hcl"})
 	}
 
 	data, err := ioutil.ReadFile(path)

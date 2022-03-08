@@ -4,11 +4,14 @@ import (
 	"github.com/ziyht/eden_go/elog"
 )
 
-func runDefaultTutorial() {
+func runDefaultTutorial(){
+	// defaultTutorial()
+}
+
+func defaultTutorial() {
 
 	logger := elog.Logger()
 	log := logger.Log()
-
 
 	syslog.Infof("----------------- runDefaultTutotial 1 ---------------")
 	log.Debugf("output debug")  // in default setting, it will not output

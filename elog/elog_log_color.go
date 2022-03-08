@@ -47,6 +47,11 @@ var defaultLevelColor = map[Level]int{
 
 // getColoredStr returns a string that is colored by given color.
 func getColoredStr(c int, s string) string {
+	c_ := color.New(color.Attribute(c))
+	c_.EnableColor()
+	return c_.Sprint(s)
+}
+func getAutoColoredStr(c int, s string) string {
 	return color.New(color.Attribute(c)).Sprint(s)
 }
 

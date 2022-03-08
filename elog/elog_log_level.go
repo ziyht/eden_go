@@ -71,6 +71,16 @@ var _levelTagsColored = [...]string {
   getColoredStr(getColorByLevel(LEVEL_FATAL ), LEVELT_FATAL),
 }
 
+var _levelTagsAutoColored = [...]string {
+	getAutoColoredStr(getColorByLevel(LEVEL_DEBUG ), LEVELT_DEBUG),
+  getAutoColoredStr(getColorByLevel(LEVEL_INFO  ), LEVELT_INFO),
+  getAutoColoredStr(getColorByLevel(LEVEL_WARN  ), LEVELT_WARN),
+  getAutoColoredStr(getColorByLevel(LEVEL_ERROR ), LEVELT_ERROR),
+  getAutoColoredStr(getColorByLevel(LEVEL_DPANIC), LEVELT_DPANIC),
+  getAutoColoredStr(getColorByLevel(LEVEL_PANIC ), LEVELT_PANIC),
+  getAutoColoredStr(getColorByLevel(LEVEL_FATAL ), LEVELT_FATAL),
+}
+
 func getLevelByStr(levelStr string) (Level, error) {
 
 	switch levelStr {
@@ -94,12 +104,16 @@ func getColoredTagByLevel(l Level) string {
 	return _levelTagsColored[l + 1]
 }
 
+func getAutoColoredTagByLevel(l Level) string {
+	return _levelTagsAutoColored[l + 1]
+}
+
 func getLevelEnableFromLevelEnables(les []zapcore.LevelEnabler) zapcore.LevelEnabler {
 
 	bm := 0
 
 	for _, le := range les{
-		for i := int(LEVEL_DEBUG) + 1; i < int(LEVEL_FATAL) + 1; i ++ {
+		for i := int(LEVEL_DEBUG) + 1; i <= int(LEVEL_FATAL) + 1; i ++ {
 			if le.Enabled(zapcore.Level(i - 1)){
 				bm = bm | (1 << i)
 			}

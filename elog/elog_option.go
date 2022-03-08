@@ -54,23 +54,23 @@ func (o *option)Group            (v string) *option {o.group             = v; o.
 //    <APP_NAME> -> binary file name of current application;
 //    <LOG_NAME> -> the name of current logger, in __default, it will set to elog;
 func (o *option)Filename         (v string) *option {o.filename          = v; o.filenameSet          = true; return o }
-func (o *option)FileLevel        (l zapcore.LevelEnabler)  *option {o.fileLevel         = l; o.fileLevelSet         = true; return o }
+func (o *option)FileLevel        (l zapcore.LevelEnabler)  *option {o.fileLevel         = l; o.fileLevelSet         = true; return o}
 func (o *option)ConsoleLevel     (l zapcore.LevelEnabler)  *option {o.consoleLevel      = l; o.consoleLevelSet      = true; return o}
 func (o *option)FileStackLevel   (l zapcore.LevelEnabler)  *option {o.fileStackLevel    = l; o.fileStackLevelSet    = true; return o}
 func (o *option)ConsoleStackLevel(l zapcore.LevelEnabler)  *option {o.consoleStackLevel = l; o.consoleStackLevelSet = true; return o}
 func (o *option)ConsoleColor     (b colorSwitch )  *option {o.consoleColor      = b; o.consoleColorSet      = true; return o}
 func (o *option)FileColor        (b colorSwitch )  *option {o.fileColor         = b; o.fileColorSet         = true; return o}
 
-type optionFunc func(*option)
-func (update optionFunc) apply(op *option) {
-	update(op)
-}
+// type optionFunc func(*option)
+// func (update optionFunc) apply(op *option) {
+// 	update(op)
+// }
 
-func (opt *option)clone()*option{
-	op := *opt
-	op.tags = opt.tags[:]
-	return &op
-}
+// func (opt *option)clone()*option{
+// 	op := *opt
+// 	op.tags = opt.tags[:]
+// 	return &op
+// }
 
 func (o *option)applyOptions(ns... *option)*option{
 	for _, n := range ns{

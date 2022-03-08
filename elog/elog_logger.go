@@ -130,7 +130,6 @@ func (l *Elogger)getLog(opts ...*option) Elog {
 
 		cfg = opt.applyToLogCfg(cfg)
 
-		sles = append(sles, cfg.StackLevel)
 		if tag == ""{
 			tag = cfg.Tag
 		}
@@ -148,14 +147,16 @@ func (l *Elogger)getLog(opts ...*option) Elog {
 				}
 			}
 
+			sles = append(sles, cfg.StackLevel)
 			cores = append(cores, l.getFileCore(getRepresentPathValue(path, l.name), cfg))
 		} else {
+			sles = append(sles, cfg.StackLevel)
 			cores = append(cores, l.getConsoleCore(cfg))
 		}		
 	}
 
-	// get lowest stack level
 	stackLevel := getLevelEnableFromLevelEnables(sles)
+	if len(sles) == 1 { stackLevel = sles[0] }
 	logger := zap.New(zapcore.NewTee(cores...), zap.AddStacktrace(stackLevel))
 	if tag != "" {
 		logger = logger.Named("[" + tag + "]")

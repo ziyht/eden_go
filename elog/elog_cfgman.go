@@ -15,10 +15,6 @@ func (cm *sCfgMan)register(name string, cfg *LoggerCfg){
 	cm.loggerCfgs[name] = cfg
 }
 
-func (cm *sCfgMan)reset(){
-	cm.loggerCfgs = make(map[string]*LoggerCfg)
-}
-
 func (cm *sCfgMan)parsingCfgsFromFile(file string) (cfgs map[string]*LoggerCfg) {
 
 	cfgs = parsingCfgsFromFile(file)
