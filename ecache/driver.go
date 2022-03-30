@@ -10,33 +10,34 @@ type DB interface {
 	Set(k []byte, v []byte, ttl ...time.Duration) error
 	Sets(ks [][]byte, vs[][]byte, ttls ...time.Duration) error
 	SetIFs(items []any, fn func(idx int, item any)(k[]byte, v[]byte, du time.Duration))error
-	
-	// get the val by key, return nil, nil if key not exist
-	Get(k []byte) ([]byte, error)
-	Gets(ks [][]byte)([][]byte, error)
+	Get(k []byte, del bool) ([]byte, error)
+	Gets(ks [][]byte, del bool)([][]byte, error)
+	GetAll()([][]byte, [][]byte, error)
+	Del(k []byte) error
+	Dels(ks [][]byte) error
 	DoForKeys(ks [][]byte, fn func(idx int, key []byte, val []byte) error) error
-
-	// dels the vals of keys in cache
-	Dels(ks [][]byte) (error)
-	// dels the vals of keys in cache and return the values for which keys in the cache, the returned values will have the same len of keys, if some key not found, the same pos in val will set to nil            
-	DelsAndGets(ks [][]byte)([][]byte, error)
-
-	// UpdateVal()  // todo: only update val 
-	// UpdateTTL()  // todo: only update TTL
-
+	DoForAll(fn func(idx int, key []byte, val []byte) error) error
+	Clear() error     // cleat all keys, not include buckets
+	
 	Buckets()[]string                 // return all bucket names
 	HaveBucket(bucket string)bool     // is the specific bucket exist
 	BSet(bucket string, k []byte, v []byte, duration ...time.Duration) error
-	BGet(bucket string, k []byte) (v []byte, err error)
-	BDel(k []byte)([]byte, error)
-	//BDoForAll(fn func(idx int, key []byte, val []byte) error) error
-	//ClearBucket() error
-
-	//DelBucket()error
+	BSets(bucket string, ks [][]byte, vs [][]byte, duration ...time.Duration) error
+	BSetIFs(bucket string, items []any, fn func(idx int, item any)(k[]byte, v[]byte, du time.Duration)) error
+	BGet(bucket string, k []byte, del bool) (v []byte, err error)
+	BGets(bucket string, ks [][]byte, del bool)([][]byte, error)
+	BGetAll(bucket string)([][]byte, [][]byte, error)
+	BDel(bucket string, k []byte) error
+	BDels(bucket string, k [][]byte) error
+	BDoForKeys(bucket string, ks [][]byte, fn func(idx int, key []byte, val []byte) error) error
+	BDoForAll(bucket string, fn func(idx int, key []byte, val []byte) error) error
+	BClear(bucket string) error
 	
-
-	Clear() error // truncate all values in cache
+	Truncate() error
 	Close() error
+
+	// UpdateVal()  // todo: only update val 
+	// UpdateTTL()  // todo: only update TTL
 }
 
 type Driver interface {
