@@ -2,6 +2,7 @@ package tests
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -20,7 +21,9 @@ func TestAll(t *testing.T){
 
 func ExecTestForDsn(t *testing.T, dsn string){
 	ExecTestBasic(t, dsn)
+	ExecTestTTL(t, dsn)
 	ExecTestClose(t, dsn)
+	ExecTestSets(t, dsn)
 	ExecTestIF_DoForKeys(t, dsn)
 	ExecTestIF_DoForAll(t, dsn)
 
@@ -37,8 +40,8 @@ func ExecTestBasic(t *testing.T, dsn string){
 	defer c.Truncate()
 
 	c.Set([]byte("key1"), []byte("value1"))
-	c.Set([]byte("key2"), []byte("value2"), time.Second)
-	time.Sleep(time.Second)
+	c.Set([]byte("key2"), []byte("value2"), time.Millisecond)
+	time.Sleep(time.Millisecond * 10)
 
 	val1, _ := c.Get([]byte("key1"))
 	val2, _ := c.Get([]byte("key2"))
@@ -55,6 +58,30 @@ func ExecTestBasic(t *testing.T, dsn string){
 	val2, _ = c.Get([]byte("key2"))
 	assert.Equal(t, nilVal, val1)
 	assert.Equal(t, nilVal, val2)
+}
+
+func ExecTestTTL(t *testing.T, dsn string){
+	c, err := ecache.GetCacheFromDsn(dsn)
+	assert.Equal(t, nil, err)
+
+	defer c.Close()
+	defer c.Truncate()
+
+	c.Set([]byte("key1"), []byte("value1"))
+	c.Set([]byte("key1"), []byte("value1"), time.Second)
+	time.Sleep(time.Second)
+	val1, _ := c.Get([]byte("key1"))
+	assert.Equal(t, nilVal, val1)
+
+	c.Set([]byte("key1"), []byte("value1"), time.Second)
+	c.Set([]byte("key1"), []byte("value1"))
+	time.Sleep(time.Second)
+	val1, _ = c.Get([]byte("key1"))
+	assert.Equal(t, []byte("value1"), val1)
+
+	c.Set([]byte("key1"), []byte("value1"), time.Second)
+	val1, _ = c.Get([]byte("key1"))
+	assert.Equal(t, []byte("value1"), val1)
 }
 
 func ExecTestClose(t *testing.T, dsn string){
@@ -83,6 +110,30 @@ func ExecTestClose(t *testing.T, dsn string){
 	assert.Equal(t, []byte("value1"), val1)
 	assert.Equal(t, nilVal, val2)
 }
+
+func ExecTestSets(t *testing.T, dsn string){
+	c, err := ecache.GetCacheFromDsn(dsn)
+	assert.Equal(t, nil, err)
+
+	defer c.Close()
+	defer c.Truncate()
+
+	keys := [][]byte{}
+	vals := [][]byte{}
+	for i := 0; i < 100; i++ {
+		keys = append(keys, []byte(fmt.Sprintf("%d", i)))
+		vals = append(vals, []byte(fmt.Sprintf("%d%d", i, i)))
+	}
+
+	err = c.Sets(keys, vals)
+
+	gets, err := c.Gets(keys...)
+	assert.Equal(t, nil, err)
+	for i := 0; i < 100; i++ {
+		assert.Equal(t, gets[i], vals[i])
+	}
+}
+
 
 type item struct {
 	Key    string
@@ -222,32 +273,58 @@ func ExecTestBucketIF_DoForKeys(t *testing.T){
 		&item{Key: "key3", Val: "val3", Ext: time.Second},
 	}
 
-	bucket := "bucket"
+	bucket1 := "bucket"
+	bucket2 := "bucket2" // 具有相同前缀的 bucket 应该互不影响
 
-	var keys[][]byte
+	var keys1 [][]byte
+	var keys2 [][]byte
 
-	err = c.BSetIFs(bucket, items,  func(idx int, ite interface{})(k []byte, v []byte, du time.Duration){
+	err = c.BSetIFs(bucket1, items,  func(idx int, ite interface{})(k []byte, v []byte, du time.Duration){
 		i := ite.(*item)
-		keys = append(keys,[]byte(i.Key))
+		keys1 = append(keys1,[]byte(i.Key))
 		val, _ := json.Marshal(i)
 		return []byte(i.Key), val, time.Duration(0)
 	})
 	assert.Equal(t, nil, err)
 
-	gets := make([]*item, 0)
-	err = c.BDoForKeys(bucket, keys, func(idx int, k []byte, val []byte)error{
+	err = c.BSetIFs(bucket2, items,  func(idx int, ite interface{})(k []byte, v []byte, du time.Duration){
+		i := ite.(*item)
+		keys2 = append(keys2,[]byte(i.Key))
+		val, _ := json.Marshal(i)
+		return []byte(i.Key), val, time.Duration(0)
+	})
+	assert.Equal(t, nil, err)
+
+	gets1 := make([]*item, 0)
+	gets2 := make([]*item, 0)
+	err = c.BDoForKeys(bucket1, keys1, func(idx int, k []byte, val []byte)error{
 		i := new(item)
 		err := json.Unmarshal(val, i)
 		if err != nil {
 			return err
 		}
-		gets = append(gets, i)
+		gets1 = append(gets1, i)
 		return nil
 	})
 	assert.Equal(t, nil, err)
-	assert.Equal(t, len(items), len(keys))
+	assert.Equal(t, len(gets1), len(keys1))
 
-	for idx, item := range gets {
+	err = c.BDoForKeys(bucket2, keys2, func(idx int, k []byte, val []byte)error{
+		i := new(item)
+		err := json.Unmarshal(val, i)
+		if err != nil {
+			return err
+		}
+		gets2 = append(gets2, i)
+		return nil
+	})
+	assert.Equal(t, nil, err)
+	assert.Equal(t, len(gets2), len(keys2))
+
+	for idx, item := range gets1 {
+		assert.Equal(t, item, items[idx])
+	}
+	for idx, item := range gets2 {
 		assert.Equal(t, item, items[idx])
 	}
 
@@ -265,14 +342,25 @@ func ExecTestBucketIF_DoForAll(t *testing.T){
 		&item{Key: "key3", Val: "val3", Ext: time.Second},
 	}
 
-	bucket := "bucket"
+	bucket1 := "bucket"
+	bucket2 := "bucket2" // 具有相同前缀的 bucket 应该互不影响
 
-	var keys[][]byte
+
+	var keys1[][]byte
 	var keys2[][]byte
+	var keys3[][]byte
 
-	err = c.BSetIFs(bucket, items,  func(idx int, ite interface{})(k []byte, v []byte, du time.Duration){
+	err = c.BSetIFs(bucket1, items,  func(idx int, ite interface{})(k []byte, v []byte, du time.Duration){
 		i := ite.(*item)
-		keys = append(keys,[]byte(i.Key))
+		keys1 = append(keys1,[]byte(i.Key))
+		val, _ := json.Marshal(i)
+		return []byte(i.Key), val, time.Duration(0)
+	})
+	assert.Equal(t, nil, err)
+
+	err = c.BSetIFs(bucket2, items,  func(idx int, ite interface{})(k []byte, v []byte, du time.Duration){
+		i := ite.(*item)
+		keys2 = append(keys2,[]byte(i.Key))
 		val, _ := json.Marshal(i)
 		return []byte(i.Key), val, time.Duration(0)
 	})
@@ -281,26 +369,42 @@ func ExecTestBucketIF_DoForAll(t *testing.T){
 	// 写入到非 bucket ，不应对 bucket 数据产生影响
 	err = c.SetIFs(items, func(idx int, ite interface{})(k []byte, v []byte, du time.Duration){
 		i := ite.(*item)
-		keys2 = append(keys2,[]byte(i.Key))
+		keys3 = append(keys3,[]byte(i.Key))
 		val, _ := json.Marshal(i)
 		return []byte(i.Key), val, time.Duration(0)
 	})
 	assert.Equal(t, nil, err)
 
-	gets := make([]*item, 0)
-	err = c.BDoForAll(bucket, func(idx int, k []byte, val []byte)error{
+	gets1 := make([]*item, 0)
+	gets2 := make([]*item, 0)
+	err = c.BDoForAll(bucket1, func(idx int, k []byte, val []byte)error{
 		i := new(item)
 		err := json.Unmarshal(val, i)
 		if err != nil {
 			return err
 		}
-		gets = append(gets, i)
+		gets1 = append(gets1, i)
 		return nil
 	})
 	assert.Equal(t, nil, err)
-	assert.Equal(t, len(items), len(keys))
+	assert.Equal(t, len(keys1), len(gets1))
 
-	for idx, item := range gets {
+	err = c.BDoForAll(bucket2, func(idx int, k []byte, val []byte)error{
+		i := new(item)
+		err := json.Unmarshal(val, i)
+		if err != nil {
+			return err
+		}
+		gets2 = append(gets2, i)
+		return nil
+	})
+	assert.Equal(t, nil, err)
+	assert.Equal(t, len(gets2), len(keys2))
+
+	for idx, item := range gets1 {
+		assert.Equal(t, item, items[idx])
+	}
+	for idx, item := range gets2 {
 		assert.Equal(t, item, items[idx])
 	}
 

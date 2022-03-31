@@ -109,7 +109,7 @@ func (c *ECache)BGet(bucket string, k []byte)([]byte, error) {
 	return c.db.BGet(bucket, k, false)
 }
 
-func (c *ECache)BGets(bucket string, ks [][]byte)([][]byte, error) {
+func (c *ECache)BGets(bucket string, ks ...[]byte)([][]byte, error) {
 	return c.db.BGets(bucket, ks, false)
 }
 
@@ -117,7 +117,7 @@ func (c *ECache)BDel(bucket string, k []byte) error {
 	return c.db.BDel(bucket, k)
 }
 
-func (c *ECache)BDels(bucket string, ks [][]byte) error {
+func (c *ECache)BDels(bucket string, ks ...[]byte) error {
 	return c.db.BDels(bucket, ks)
 }
 

@@ -15,6 +15,7 @@ type cfg struct {
 
 type DB struct {
 	db      *badger.DB
+	opts    *badger.Options
 	buckets map[string][]byte
 }
 
@@ -40,19 +41,21 @@ func bucketWriteKeyPrefix(bucket string) []byte {
 	out := []byte{};
 	out = append(out, bpre...)
 	out = append(out, []byte(bucket)...)
+	out = append(out, 127)
 	return out
 }
 
 func newDB(cfg *cfg) (*DB, error){
 
-	opt := badger.DefaultOptions(cfg.Dir)
+	opts := badger.DefaultOptions(cfg.Dir)
 
-	db, err := badger.Open(opt)
+	db, err := badger.Open(opts)
 	if err != nil {
 		return nil, err
 	}
 
 	out := &DB{db: db}
+	out.opts    = &opts
 	out.buckets = make(map[string][]byte)
 	out.reloadBucketNames()
 
@@ -142,36 +145,49 @@ func(db *DB)sets(bucket *string, ks [][]byte, vs [][]byte, durations ...time.Dur
 			return fmt.Errorf("the len for key(%d) and durations(%d) are not match", lk, ld)
 		}
 	}
-	var prefix []byte = _pre[:]  // for none bucket
+	var prefix []byte = _pre  // for none bucket
 	if bucket != nil {
 		if err = db.registerBucketName(*bucket); err != nil{
 			return fmt.Errorf("registerBucketName for '%s' failed: %s", *bucket, err)
 		}
 		prefix = bucketWriteKeyPrefix(*bucket)
-	} 
-	return db.db.Update(func(txn *badger.Txn) error {
-		for i, k := range ks{
-			var e *badger.Entry
-			key := []byte{}; key = append(key, prefix...); key = append(key, k...)
-			if lv == 1 {
-				e = badger.NewEntry(key, vs[0])
-			} else {
-				e = badger.NewEntry(key, vs[i])
-			}
-			
-			if ld == 1 {
-				e.WithTTL(durations[0])
-			} else if ld > 1 {
-				e.WithTTL(durations[i])
-			}
+	}
 
-			err := txn.SetEntry(e)
-			if err != nil {
-				return err
+	for i := 0; i < lk;  {
+		if err = db.db.Update(func(txn *badger.Txn) error {
+			cnt := 0
+			for ; i < lk; i++ {
+				if cnt == 1000 {
+					return nil
+				}
+				var e *badger.Entry
+				key := []byte{}; key = append(key, prefix...); key = append(key, ks[i]...)
+				if lv == 1 {
+					e = badger.NewEntry(key, vs[0])
+				} else {
+					e = badger.NewEntry(key, vs[i])
+				}
+				
+				if ld == 1 {
+					e.WithTTL(durations[0])
+				} else if ld > 1 {
+					e.WithTTL(durations[i])
+				}
+
+				err := txn.SetEntry(e)
+				if err != nil {
+					fmt.Printf("%d\n\n", i)
+					return err
+				}
+				cnt += 1
 			}
+			return nil
+		}); err != nil {
+			return err
 		}
-		return nil
-	})
+	}
+
+	return nil
 }
 
 func(db *DB)getAll(bucket *string)(ks[][]byte, vs[][]byte, err error){
@@ -207,19 +223,44 @@ func(db *DB)Sets(ks [][]byte, vs [][]byte, durations ...time.Duration) (err erro
 	return db.sets(nil, ks, vs, durations...)
 }
 
-func (db *DB)SetIFs(items []interface{}, fn func(int, interface{})(k[]byte, v[]byte, du time.Duration))error{
-	return db.db.Update(func(txn *badger.Txn) error {
-		for idx, item := range items {
-			k, v , d := fn(idx, item)
-			key := []byte{}; key = append(key, _pre...); key = append(key, k...)
-			elem := badger.NewEntry(key, v)
-			if d > 0 { elem.WithTTL(d) }
-			if err := txn.SetEntry(elem); err != nil {
-				return err
-			}
+func (db *DB)setIFs(bucket *string, items []interface{}, fn func(int, interface{})(k[]byte, v[]byte, du time.Duration))error{
+	prefix := _pre
+	if bucket != nil{
+		if len(*bucket) == 0 {
+			return fmt.Errorf("empty bucket name")
 		}
-		return nil
-	})
+		if err := db.registerBucketName(*bucket); err != nil {
+			return err
+		}
+		prefix = bucketWriteKeyPrefix(*bucket)
+	}
+	len := len(items)
+	for i := 0; i < len; {
+		if err := db.db.Update(func(txn *badger.Txn) error {
+			cnt := 0
+			for ; i < len; i++ {
+				if cnt == 1000 {
+					return nil
+				}
+				k, v , d := fn(i, items[i])
+				key := []byte{}; key = append(key, prefix...); key = append(key, k...)
+				elem := badger.NewEntry(key, v)
+				if d > 0 { elem.WithTTL(d) }
+				if err := txn.SetEntry(elem); err != nil {
+					return err
+				}
+				cnt += 1
+			}
+			return nil
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (db *DB)SetIFs(items []interface{}, fn func(int, interface{})(k[]byte, v[]byte, du time.Duration))error{
+	return db.setIFs(nil, items, fn)
 }
 
 func (db *DB)get(bucket *string, k []byte, del bool)(v []byte, err error){
@@ -270,11 +311,11 @@ func(db *DB)Get(k []byte, del bool) (v []byte, err error) {
 }
 
 func(db *DB)doForKeys(bucket *string, ks [][]byte, fn func(idx int, key []byte, val []byte) error) error {
-	var prefix []byte = _pre[:]
+	var prefix []byte = _pre
 	if bucket != nil {
 		if len(*bucket) == 0 {
 			return fmt.Errorf("empty bucket name")
-		}
+		}		
 		prefix = bucketWriteKeyPrefix(*bucket)
 	}
 	key := bytes.NewBuffer(nil)
@@ -367,7 +408,6 @@ func(db *DB)getVals(bucket *string, ks [][]byte, del bool) ([][]byte,  error) {
 		err = db.db.Update(fn)
 	}
 	
-
 	return out, err
 }
 
@@ -408,24 +448,7 @@ func(db *DB)BSets(bucket string, ks [][]byte, vs [][]byte, durations ...time.Dur
 }
 
 func (db *DB)BSetIFs(bucket string, items []interface{}, fn func(int, interface{})(k[]byte, v[]byte, du time.Duration))error{
-	if err := db.registerBucketName(bucket); err != nil {
-		return err
-	}
-	prefix := bucketWriteKeyPrefix(bucket)
-	var elems []*badger.Entry 
-	return db.db.Update(func(txn *badger.Txn) error {
-		for idx, item := range items {
-			k, v , d := fn(idx, item)
-			key := []byte{}; key = append(key, prefix...); key = append(key, k...)
-			elem := badger.NewEntry(key, v)
-			elems = append(elems, elem)
-			if d > 0 { elem.WithTTL(d) }
-			if err := txn.SetEntry(elem); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
+	return db.setIFs(&bucket, items, fn)
 }
 
 func(db *DB)BGet(bucket string, k []byte, del bool) (v []byte, err error) {
