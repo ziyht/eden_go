@@ -4,11 +4,17 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ziyht/eden_go/ecache/driver"
+
+	_ "github.com/ziyht/eden_go/ecache/driver/drivers/badgerdb"
+	_ "github.com/ziyht/eden_go/ecache/driver/drivers/nutsdb"
 )
+
+
 
 type ECache struct {
 	dsn  string
-	db   DB
+	db   driver.DB
 }
 
 func GetCache(name string) *ECache {
@@ -17,7 +23,7 @@ func GetCache(name string) *ECache {
 
 func GetCacheFromDsn(dsn string )(*ECache, error){
 
-	db, err := openDsn(dsn)
+	db, err := driver.OpenDsn(dsn)
 	if err != nil {
 		return nil, err
 	}

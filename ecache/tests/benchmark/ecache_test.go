@@ -7,15 +7,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/ziyht/eden_go/ecache"
-	_ "github.com/ziyht/eden_go/ecache/driver/badgerdb"
 )
 
 var nilVal []byte = nil
 
-var dsn = "badger:test_data/badger"
-
 func TestAll(t *testing.T){
 	ExecTestForDsn(t, "badger:test_data/badger")
+	ExecTestForDsn(t, "nutsdb:test_data/nutsdb")
 }
 
 func ExecTestForDsn(t *testing.T, dsn string){

@@ -1,4 +1,4 @@
-package pebble
+package badgerdb
 
 import (
 	"bytes"
@@ -48,6 +48,7 @@ func bucketWriteKeyPrefix(bucket string) []byte {
 func newDB(cfg *cfg) (*DB, error){
 
 	opts := badger.DefaultOptions(cfg.Dir)
+	opts = opts.WithLoggingLevel(badger.WARNING)
 
 	db, err := badger.Open(opts)
 	if err != nil {
@@ -510,7 +511,18 @@ func (db *DB)clear(bucket *string) error {
 		if len(*bucket) == 0 {
 			return fmt.Errorf("empty bucket name")
 		}
-		return db.db.DropPrefix(bucketWriteKeyPrefix(*bucket))
+		err := db.db.DropPrefix(bucketWriteKeyPrefix(*bucket))
+		if err != nil {
+			return err
+		}
+		return db.db.Update(func(txn *badger.Txn) error {
+
+			err := txn.Delete(bucketRecordKey(*bucket))
+			if err == badger.ErrKeyNotFound || err == nil {
+				delete(db.buckets, *bucket)
+			}
+			return nil
+		})
 	}
 	return db.db.DropPrefix(_pre[:])
 }

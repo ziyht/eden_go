@@ -8,15 +8,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/ziyht/eden_go/ecache"
-	_ "github.com/ziyht/eden_go/ecache/driver/badgerdb"
 )
 
 var nilVal []byte = nil
 
-var dsn = "badger:test_data/badger"
-
 func TestAll(t *testing.T){
 	ExecTestForDsn(t, "badger:test_data/badger")
+	ExecTestForDsn(t, "nutsdb:test_data/nutsdb")
 }
 
 func ExecTestForDsn(t *testing.T, dsn string){
@@ -28,8 +26,8 @@ func ExecTestForDsn(t *testing.T, dsn string){
 	ExecTestIF_DoForAll(t, dsn)
 
 	ExecTestBucketBasic(t, dsn)
-	ExecTestBucketIF_DoForKeys(t)
-	ExecTestBucketIF_DoForAll(t)
+	ExecTestBucketIF_DoForKeys(t, dsn)
+	ExecTestBucketIF_DoForAll(t, dsn)
 }
 
 func ExecTestBasic(t *testing.T, dsn string){
@@ -41,7 +39,7 @@ func ExecTestBasic(t *testing.T, dsn string){
 
 	c.Set([]byte("key1"), []byte("value1"))
 	c.Set([]byte("key2"), []byte("value2"), time.Millisecond)
-	time.Sleep(time.Millisecond * 10)
+	time.Sleep(time.Second)
 
 	val1, _ := c.Get([]byte("key1"))
 	val2, _ := c.Get([]byte("key2"))
@@ -263,7 +261,7 @@ func ExecTestBucketBasic(t *testing.T, dsn string){
 	assert.Equal(t, nilVal, val2)
 }
 
-func ExecTestBucketIF_DoForKeys(t *testing.T){
+func ExecTestBucketIF_DoForKeys(t *testing.T, dsn string){
 	c, err := ecache.GetCacheFromDsn(dsn)
 	assert.Equal(t, nil, err)
 
@@ -332,7 +330,7 @@ func ExecTestBucketIF_DoForKeys(t *testing.T){
 	c.Close()
 }
 
-func ExecTestBucketIF_DoForAll(t *testing.T){
+func ExecTestBucketIF_DoForAll(t *testing.T, dsn string){
 	c, err := ecache.GetCacheFromDsn(dsn)
 	assert.Equal(t, nil, err)
 
