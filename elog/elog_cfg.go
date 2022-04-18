@@ -831,9 +831,15 @@ func getRepresentPathValue(path string, name string) string {
 	}
 
 	path = strings.ReplaceAll(path, "<HOSTNAME>", hostname)
+	path = strings.ReplaceAll(path, "<HOST>", hostname)
+	path = strings.ReplaceAll(path, "<APPNAME>", appName)
+	path = strings.ReplaceAll(path, "<APP_NAME>", appName)
 	path = strings.ReplaceAll(path, "<APP>", appName)
+	path = strings.ReplaceAll(path, "<LOGGERNAME>", name)
+	path = strings.ReplaceAll(path, "<LOGGER>", name)
+	path = strings.ReplaceAll(path, "<LOGNAME>", name)
 	path = strings.ReplaceAll(path, "<LOG>", name)
-
+	
 	return path
 }
 

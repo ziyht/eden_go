@@ -2,6 +2,7 @@ package ecache
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/ziyht/eden_go/ecache/driver"
@@ -15,6 +16,8 @@ import (
 type ECache struct {
 	dsn  string
 	db   driver.DB
+	l1s  map[string]*ECacheL1
+	mu   sync.Mutex
 }
 
 func GetCache(name string) *ECache {
@@ -69,11 +72,11 @@ func (c *ECache)Dels(ks ...[]byte) error {
 	return c.db.Dels(ks)
 }
 
-func (c ECache)GetAndDel(k []byte)([]byte, error){
+func (c *ECache)GetAndDel(k []byte)([]byte, error){
 	return c.db.Get(k, true)
 }
 
-func (c ECache)GetsAndDel(ks ...[]byte)([][]byte, error){
+func (c *ECache)GetsAndDel(ks ...[]byte)([][]byte, error){
 	return c.db.Gets(ks, true)
 }
 
@@ -85,7 +88,7 @@ func (c *ECache)DoForAll(fn func(idx int, key []byte, val []byte) error) error {
 	return c.db.DoForAll(fn)
 }
 
-func (c ECache)Clear() error {
+func (c *ECache)Clear() error {
 	return c.db.Clear()
 }
 
@@ -135,11 +138,11 @@ func (c *ECache)BDoForAll(bucket string, fn func(idx int, key []byte, val []byte
 	return c.db.BDoForAll(bucket, fn)
 }
 
-func (c ECache)BClear(bucket string) error {
+func (c *ECache)BClear(bucket string) error {
 	return c.db.BClear(bucket)
 }
 
-func (c ECache)Truncate() error {
+func (c *ECache)Truncate() error {
 	return c.db.Truncate()
 }
 
@@ -147,3 +150,44 @@ func (c *ECache)Close() error {
 	return c.db.Close()
 }
 
+type Item interface {
+	New() Item                // using this to make new Item in Get Methods
+	Marshal()([]byte, error)  // do marshal things
+	Unmarshal([]byte) error   // ummarshal data to self
+}
+
+func (c *ECache)SetI(k []byte, i Item, ttl ...time.Duration) error{
+	return c.BSetI("", k, i, ttl...)
+}
+
+func (c *ECache)BSetI(bucket string, k []byte, i Item, ttl ...time.Duration) error{
+	v, err := i.Marshal()
+	if err != nil {
+		return err
+	}
+
+	if bucket == "" {
+		err = c.Set(k, v, ttl...)
+	} else {
+		err = c.BSet(bucket, k, v, ttl...)
+	}
+
+	return err
+}
+
+func (c *ECache)BGetI(bucket string, k []byte, i Item)(out Item, err error) {
+	var v []byte
+
+	if bucket == "" {
+		v, err = c.Get(k)
+	} else {
+		v, err = c.BGet(bucket, k)
+	}
+
+	i = i.New()
+	if err = i.Unmarshal(v); err != nil {
+		return nil, err
+	}
+
+	return i, err
+}

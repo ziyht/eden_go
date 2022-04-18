@@ -7,6 +7,7 @@ import (
 	"golang.org/x/exp/maps"
 
 	badger "github.com/dgraph-io/badger/v3"
+	"github.com/dgraph-io/badger/v3/options"
 )
 
 type cfg struct {
@@ -49,6 +50,7 @@ func newDB(cfg *cfg) (*DB, error){
 
 	opts := badger.DefaultOptions(cfg.Dir)
 	opts = opts.WithLoggingLevel(badger.WARNING)
+	opts = opts.WithCompression(options.ZSTD)
 
 	db, err := badger.Open(opts)
 	if err != nil {
