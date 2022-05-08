@@ -28,6 +28,8 @@ func ExecTestForDsn(t *testing.T, dsn string){
 	ExecTestBucketBasic(t, dsn)
 	ExecTestBucketIF_DoForKeys(t, dsn)
 	ExecTestBucketIF_DoForAll(t, dsn)
+
+  ExecTest_Item(t, dsn)
 }
 
 func ExecTestBasic(t *testing.T, dsn string){
@@ -230,6 +232,64 @@ func ExecTestIF_DoForAll(t *testing.T, dsn string){
 	c.Close()
 }
 
+type testItem struct {
+	User  string
+	Phone string
+}
+
+func(i* testItem)New()ecache.Item{
+	return new(testItem)
+}
+func(i* testItem)Key()[]byte{
+	return []byte(i.User)
+}
+func(i* testItem)Marshal()([]byte, error){
+	return json.Marshal(i)
+}
+func(i* testItem)Unmarshal(in []byte)(error){
+	return json.Unmarshal(in, i)
+}
+func(i* testItem)TTL()(time.Duration){
+	return time.Second
+}
+func(i* testItem)isEqual(in ecache.Item) bool {
+	in_, ok := in.(*testItem)
+	if ok == false {
+		return false
+	}
+	if i.User != in_.User { return false }
+	if i.Phone != in_.Phone { return false }
+	return true
+}
+
+
+func ExecTestItem(t *testing.T, dsn string) {
+
+	inputs := []*testItem{
+		{User: "user1", Phone: "1234566"},
+		{User: "user2", Phone: "16473323"},
+		{User: "user3", Phone: "none"},
+		{User: "user4", Phone: "76516334"},
+	}
+
+	c, err := ecache.GetCacheFromDsn(dsn)
+	assert.Equal(t, nil, err)
+
+	defer c.Close()
+	defer c.Truncate()
+
+	for _, item := range inputs {
+		c.SetItem(item.Key(), item)
+	}
+
+	for _, item := range inputs {
+		out_, err := c.GetItem(item.Key(), item)
+		assert.Equal(t, err, nil)
+		assert.Equal(t, item.isEqual(out_), true)
+	}
+}
+
+
 func ExecTestBucketBasic(t *testing.T, dsn string){
 	c, err := ecache.GetCacheFromDsn(dsn)
 	assert.Equal(t, nil, err)
@@ -404,6 +464,108 @@ func ExecTestBucketIF_DoForAll(t *testing.T, dsn string){
 	}
 	for idx, item := range gets2 {
 		assert.Equal(t, item, items[idx])
+	}
+
+	c.Truncate()
+	c.Close()
+}
+
+type myItem struct {
+	Name       string
+	Tel        string
+	TTL_       time.Duration
+	UnMarshal_ bool
+}
+
+func (i *myItem)New()(ecache.Item) {
+	return &myItem{}
+}
+
+func (i *myItem)Marshal()([]byte, error){
+	return json.Marshal(i)
+}
+
+func (i *myItem)Unmarshal(in []byte)(error){
+	err := json.Unmarshal(in, i)
+	i.UnMarshal_ = true
+	return err
+}
+
+func (i *myItem)TTL() time.Duration {
+	return i.TTL_
+}
+
+func (i *myItem)Equal(i2 *myItem) bool {
+	if i == i2 {
+		return true
+	}
+
+	if i2 == nil {
+		return false
+	}
+
+	if i.Name != i2.Name || i.Tel != i2.Tel || i.TTL_ != i2.TTL_{
+		return false
+	}
+	return true
+}
+
+func ExecTest_Item(t *testing.T, dsn string){
+	c, err := ecache.GetCacheFromDsn(dsn)
+	assert.Equal(t, nil, err)
+
+	inputs := []*myItem{
+		{Name:"name1", Tel:"11111111111", TTL_: time.Second},
+		{Name:"name2", Tel:"22222222222", TTL_: time.Second*2},
+		{Name:"name3", Tel:"33333333333", TTL_: time.Second*3},
+	}
+
+	for _, i := range inputs {
+		c.SetItem([]byte(i.Name), i, time.Second)
+		c.BSetItem("b1", []byte(i.Name), i)
+		c.BSetItem("b2", []byte(i.Name), i, time.Second)
+	}
+
+	for _, i := range inputs {
+		{
+			ret, err := c.GetItem([]byte(i.Name), i)
+			assert.Equal(t, err, nil)
+			get, ok := ret.(*myItem)
+			assert.Equal(t, ok, true)
+			assert.Equal(t, i.Equal(get), true)
+		}
+
+		{
+			ret, err := c.BGetItem("b1", []byte(i.Name), i)
+			assert.Equal(t, err, nil)
+			get, ok := ret.(*myItem)
+			assert.Equal(t, ok, true)
+			assert.Equal(t, i.Equal(get), true)
+		}
+		
+		{
+			ret, err := c.BGetItem("b2", []byte(i.Name), i)
+			assert.Equal(t, err, nil)
+			get, ok := ret.(*myItem)
+			assert.Equal(t, ok, true)
+			assert.Equal(t, i.Equal(get), true)
+		}
+	}
+
+	time.Sleep(time.Second)
+
+	for _, i := range inputs {
+		{
+			ret, err := c.BGetItem("b1", []byte(i.Name), i)
+			if i.TTL() <= time.Second {
+				assert.Equal(t, ret, nil)
+			}else {
+				assert.Equal(t, err, nil)
+				get, ok := ret.(*myItem)
+				assert.Equal(t, ok, true)
+				assert.Equal(t, i.Equal(get), true)
+			}
+		}
 	}
 
 	c.Truncate()

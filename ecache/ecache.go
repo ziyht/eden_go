@@ -154,40 +154,51 @@ type Item interface {
 	New() Item                // using this to make new Item in Get Methods
 	Marshal()([]byte, error)  // do marshal things
 	Unmarshal([]byte) error   // ummarshal data to self
+	TTL() time.Duration       // return the TTL of current item, has lower priority than params
 }
 
-func (c *ECache)SetI(k []byte, i Item, ttl ...time.Duration) error{
-	return c.BSetI("", k, i, ttl...)
-}
-
-func (c *ECache)BSetI(bucket string, k []byte, i Item, ttl ...time.Duration) error{
+func (c *ECache)SetItem(k []byte, i Item, ttl ...time.Duration) error{
 	v, err := i.Marshal()
-	if err != nil {
-		return err
+	if err != nil { return err }
+
+	if len(ttl) == 0{
+		ittl := i.TTL()
+		if ittl > 0 { ttl = []time.Duration{ittl} }
 	}
 
-	if bucket == "" {
-		err = c.Set(k, v, ttl...)
-	} else {
-		err = c.BSet(bucket, k, v, ttl...)
-	}
-
-	return err
+	return c.Set(k, v, ttl...)
 }
 
-func (c *ECache)BGetI(bucket string, k []byte, i Item)(out Item, err error) {
-	var v []byte
+func (c *ECache)GetItem(k []byte, i Item)(out Item, err error){
+	v, err := c.Get(k)
+	if err != nil { return nil, err }
+	if v   == nil { return nil, err }
 
-	if bucket == "" {
-		v, err = c.Get(k)
-	} else {
-		v, err = c.BGet(bucket, k)
+	out = i.New()
+	err = out.Unmarshal(v); if err != nil {out = nil}
+	return
+}
+
+// BSetItem
+// the ttl in params has higher priority than item.TTL()
+func (c *ECache)BSetItem(bucket string, k []byte, i Item, ttl ...time.Duration) error{
+	v, err := i.Marshal()
+	if err != nil { return err }
+
+	if len(ttl) == 0{
+		ittl := i.TTL()
+		if ittl > 0 { ttl = []time.Duration{ittl} }
 	}
 
-	i = i.New()
-	if err = i.Unmarshal(v); err != nil {
-		return nil, err
-	}
+	return c.BSet(bucket, k, v, ttl...)
+}
 
-	return i, err
+func (c *ECache)BGetItem(bucket string, k []byte, i Item)(out Item, err error) {
+	v, err := c.BGet(bucket, k)
+	if err != nil { return nil, err }
+	if v   == nil { return nil, err }
+
+	out = i.New()
+	err = out.Unmarshal(v); if err != nil {out = nil}
+	return
 }
