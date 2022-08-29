@@ -1,0 +1,7 @@
+ecache:
+
+  cache3:
+    dsn: badger:./test_data/cache3
+
+  cache2:
+    dsn: badger:./test_data/cache22
