@@ -1,9 +1,6 @@
 package badgerdb
 
 import (
-
-	"net/url"
-
 	"github.com/ziyht/eden_go/ecache/driver"
 )
 
@@ -12,18 +9,12 @@ type myDriver struct {
 }
 
 var driverName = "badger"
-var sampleDsn = "badger:<dir>?value_dir=<dir>&"
-var insDriver = &myDriver{}
+var insDriver  = &myDriver{}
 
-func (d *myDriver)Open(dsn string) (driver.DB, error) {
-
-	uri, err := url.Parse(dsn)
-	if err != nil {
-		return nil, err
-	}
-	
+func (d *myDriver)Open(path string, params map[string][]string) (driver.DB, error) {
 	cfg := cfg{
-		Dir: uri.Path,
+		Dir     : path,
+		InMemory: driver.GetBool(params, "memory") || driver.GetBool(params, "in-memory"),
 	}
 
 	return  newDB(&cfg)

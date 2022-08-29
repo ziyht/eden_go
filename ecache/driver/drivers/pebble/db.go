@@ -5,7 +5,8 @@ import (
 )
 
 type cfg struct {
-	Dir  *string
+	Dir       string
+	InMemory  bool
 }
 
 type DB struct {
@@ -16,10 +17,17 @@ func newDB(cfg *cfg) (*DB, error){
 
 	opt := pebble.Options{}
 
-	db, err := pebble.Open(*cfg.Dir, &opt)
+	db, err := pebble.Open(cfg.Dir, &opt)
 	if err != nil {
 		return nil, err
 	}
+
+	// b := db.NewBatch()
+	
+	// db.Set()
+	// db.DeleteRange()
+	// db.Get()
+	
 
 	return &DB{db: db}, nil
 }

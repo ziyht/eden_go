@@ -1,16 +1,9 @@
 package pebble
 
 
-
-
-type driver struct {
-
+type myDriver struct {
 }
 
+var driverName = "pebble"
+var insDriver  = &myDriver{}
 
-
-func (d *driver)Open(dsn string) {
-
-
-
-}
