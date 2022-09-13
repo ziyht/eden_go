@@ -2,7 +2,7 @@ package ecache
 
 import (
 	_ "github.com/ziyht/eden_go/ecache/driver/drivers/badgerdb"
-	//_ "github.com/ziyht/eden_go/ecache/driver/drivers/nutsdb"
+	_ "github.com/ziyht/eden_go/ecache/driver/drivers/nutsdb"
 )
 
 func NewDBCache(dsn string) (c *DBCache, err error) {

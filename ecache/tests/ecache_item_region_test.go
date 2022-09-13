@@ -54,7 +54,8 @@ func (i *myItem)Equal(i2 *myItem) bool {
 }
 
 func TestItemRegionAll(t *testing.T){
-	ExecTestItemRegionDsn(t, "badger:test_data/badger")
+	//ExecTestItemRegionDsn(t, "badger:test_data/badger")
+	ExecTestItemRegionDsn(t, "nutsdb:test_data/nutsdb")
 }
 
 func ExecTestItemRegionDsn(t *testing.T, dsn string){
@@ -79,14 +80,14 @@ func ExecTestL1_Basic(t *testing.T, dsn string){
 	l12 := c.NewItemRegion("l2"); l12.SetDefaultTTL(time.Second*3)
 
 	for _, i := range inputs {
-	  l10.ASet(i.Name, i, i.TTL_)
-		l11.ASet(i.Name, i, i.TTL_)
-		l12.ASet(i.Name, i, i.TTL_)
+	  l10.Set(i.Name, i, i.TTL_)
+		l11.Set(i.Name, i, i.TTL_)
+		l12.Set(i.Name, i, i.TTL_)
 	}
 
 	for _, i := range inputs {
 		{
-			ret, err := l10.AGet([]byte(i.Name), newMyItem)
+			ret, err := l10.Get(i.Name, newMyItem)
 			assert.Equal(t, err, nil)
 			get, ok := ret.(*myItem)
 			assert.Equal(t, ok, true)
@@ -94,7 +95,7 @@ func ExecTestL1_Basic(t *testing.T, dsn string){
 		}
 
 		{
-			ret, err := l11.AGet([]byte(i.Name), newMyItem)
+			ret, err := l11.Get(i.Name, newMyItem)
 			assert.Equal(t, err, nil)
 			get, ok := ret.(*myItem)
 			assert.Equal(t, ok, true)
@@ -102,7 +103,7 @@ func ExecTestL1_Basic(t *testing.T, dsn string){
 		}
 		
 		{
-			ret, err := l12.AGet([]byte(i.Name), newMyItem)
+			ret, err := l12.Get(i.Name, newMyItem)
 			assert.Equal(t, err, nil)
 			get, ok := ret.(*myItem)
 			assert.Equal(t, ok, true)
@@ -113,7 +114,7 @@ func ExecTestL1_Basic(t *testing.T, dsn string){
 	time.Sleep(time.Second*2)
 	for _, i := range inputs {
 		{
-			ret, err := l10.AGet([]byte(i.Name), newMyItem)
+			ret, err := l10.Get(i.Name, newMyItem)
 			if i.TTL() <= time.Second * 2 {
 				assert.Equal(t, ret, nil)
 			} else {
@@ -125,7 +126,7 @@ func ExecTestL1_Basic(t *testing.T, dsn string){
 		}
 
 		{
-			ret, err := l11.AGet([]byte(i.Name), newMyItem)
+			ret, err := l11.Get(i.Name, newMyItem)
 			if i.TTL() <= time.Second * 2 {
 				assert.Equal(t, ret, nil)
 			} else {
@@ -137,7 +138,7 @@ func ExecTestL1_Basic(t *testing.T, dsn string){
 		}
 		
 		{
-			ret, err := l12.AGet([]byte(i.Name), newMyItem)
+			ret, err := l12.Get(i.Name, newMyItem)
 			if i.TTL() <= time.Second * 2 {
 				assert.Equal(t, ret, nil)
 			} else {
@@ -168,26 +169,26 @@ func ExecTestL1_MakeTypedRegion(t *testing.T, dsn string){
 	l12 := ecache.NewTypedItemRegion[*myItem](c.NewRegion("l2")); l12.SetDefaultTTL(time.Second*3)
 
 	for _, i := range inputs {
-	  l10.ASet(i.Name, i, i.TTL_)
-		l11.ASet(i.Name, i, i.TTL_)
-		l12.ASet(i.Name, i, i.TTL_)
+	  l10.Set(i.Name, i, i.TTL_)
+		l11.Set(i.Name, i, i.TTL_)
+		l12.Set(i.Name, i, i.TTL_)
 	}
 
 	for _, i := range inputs {
 		{
-			get, err := l10.AGet([]byte(i.Name), newMyItem2)
+			get, err := l10.Get([]byte(i.Name), newMyItem2)
 			assert.Equal(t, err, nil)
 			assert.Equal(t, i.Equal(get), true)
 		}
 
 		{
-			get, err := l11.AGet([]byte(i.Name), newMyItem2)
+			get, err := l11.Get([]byte(i.Name), newMyItem2)
 			assert.Equal(t, err, nil)
 			assert.Equal(t, i.Equal(get), true)
 		}
 		
 		{
-			get, err := l12.AGet([]byte(i.Name), newMyItem2)
+			get, err := l12.Get([]byte(i.Name), newMyItem2)
 			assert.Equal(t, err, nil)
 			assert.Equal(t, i.Equal(get), true)
 		}
@@ -197,7 +198,7 @@ func ExecTestL1_MakeTypedRegion(t *testing.T, dsn string){
 	time.Sleep(time.Second*2)
 	for _, i := range inputs {
 		{
-			get, err := l10.AGet([]byte(i.Name), newMyItem2)
+			get, err := l10.Get([]byte(i.Name), newMyItem2)
 			if i.TTL() <= time.Second * 2 {
 				assert.Equal(t, get, nilItem)
 			} else {
@@ -207,7 +208,7 @@ func ExecTestL1_MakeTypedRegion(t *testing.T, dsn string){
 		}
 
 		{
-			get, err := l11.AGet([]byte(i.Name), newMyItem2)
+			get, err := l11.Get([]byte(i.Name), newMyItem2)
 			if i.TTL() <= time.Second * 2 {
 				assert.Equal(t, get, nilItem)
 			} else {
@@ -217,7 +218,7 @@ func ExecTestL1_MakeTypedRegion(t *testing.T, dsn string){
 		}
 		
 		{
-			get, err := l12.AGet([]byte(i.Name), newMyItem2)
+			get, err := l12.Get([]byte(i.Name), newMyItem2)
 			if i.TTL() <= time.Second * 2 {
 				assert.Equal(t, get, nilItem)
 			} else {
@@ -250,26 +251,26 @@ func ExecTestL1_GetFromMem(t *testing.T, dsn string){
 	l12.EnableMemCache(10, time.Second * 3)
 
 	for _, i := range inputs {
-	  l10.ASet(i.Name, i, i.TTL_)
-		l11.ASet(i.Name, i, i.TTL_)
-		l12.ASet(i.Name, i, i.TTL_)
+	  l10.Set(i.Name, i, i.TTL_)
+		l11.Set(i.Name, i, i.TTL_)
+		l12.Set(i.Name, i, i.TTL_)
 	}
 
 	for _, i := range inputs {
 		{
-			get, err := l10.AGet(i.Name, newMyItem2)
+			get, err := l10.Get(i.Name, newMyItem2)
 			assert.Equal(t, err, nil)
 			assert.Equal(t, i.Equal(get), true)
 		}
 
 		{
-			get, err := l11.AGet([]byte(i.Name), newMyItem2)
+			get, err := l11.Get([]byte(i.Name), newMyItem2)
 			assert.Equal(t, err, nil)
 			assert.Equal(t, i.Equal(get), true)
 		}
 		
 		{
-			get, err := l12.AGet([]byte(i.Name), newMyItem2)
+			get, err := l12.Get([]byte(i.Name), newMyItem2)
 			assert.Equal(t, err, nil)
 			assert.Equal(t, i.Equal(get), true)
 		}
@@ -279,7 +280,7 @@ func ExecTestL1_GetFromMem(t *testing.T, dsn string){
 	time.Sleep(time.Second*2)
 	for _, i := range inputs {
 		{
-			get, err := l10.AGet([]byte(i.Name), newMyItem2)
+			get, err := l10.Get([]byte(i.Name), newMyItem2)
 			if i.TTL() <= time.Second * 2 {
 				assert.Equal(t, get, nilItem)
 			} else {
@@ -289,7 +290,7 @@ func ExecTestL1_GetFromMem(t *testing.T, dsn string){
 		}
 
 		{
-			get, err := l11.AGet([]byte(i.Name), newMyItem2)
+			get, err := l11.Get([]byte(i.Name), newMyItem2)
 			if i.TTL() <= time.Second * 2 {
 				assert.Equal(t, get, nilItem)
 			} else {
@@ -299,7 +300,7 @@ func ExecTestL1_GetFromMem(t *testing.T, dsn string){
 		}
 		
 		{
-			get, err := l12.AGet([]byte(i.Name), newMyItem2)
+			get, err := l12.Get([]byte(i.Name), newMyItem2)
 			if i.TTL() <= time.Second * 2 {
 				assert.Equal(t, get, nilItem)
 			} else {
@@ -318,7 +319,6 @@ func ExecTestL1_GetFromMem(t *testing.T, dsn string){
 }
 
 func ExecTestL1_GetFromMemAfterReopen(t *testing.T, dsn string){
-
 	c, err := ecache.NewDBCache(dsn)
 	assert.Equal(t, nil, err)
 
@@ -331,23 +331,24 @@ func ExecTestL1_GetFromMemAfterReopen(t *testing.T, dsn string){
 	l10 := ecache.NewTypedItemRegion[*myItem](c.NewRegion(""))  ; l10.SetDefaultTTL(time.Second*2)
 
 	for _, i := range inputs {
-	  l10.ASet(i.Name, i)
+	  l10.Set(i.Name, i)
 	}
 
-	c.Close()
+	err = c.Close()
+	assert.Equal(t, nil, err)
 	c, err = ecache.NewDBCache(dsn)
 	assert.Equal(t, nil, err)
 	l10 = ecache.NewTypedItemRegion[*myItem](c.NewRegion(""))  ; l10.SetDefaultTTL(time.Second*2)
-	l10.EnableMemCache(10, time.Second * 3)
+	l10.EnableMemCache(10, time.Second * 2)
 	for _, i := range inputs {
-		get, err := l10.AGet([]byte(i.Name), newMyItem2)
-		assert.Equal(t, err, nil)
-		assert.Equal(t, i.Equal(get), true)
+		get, err := l10.Get(i.Name, newMyItem2)
+		assert.Equal(t, nil, err)
+		assert.Equal(t, true, i.Equal(get))
 	}
 	time.Sleep(time.Second / 10)
 	for i := 0; i < 100; i++ {
 		for _, i := range inputs {
-			get, err := l10.AGet([]byte(i.Name), newMyItem2)
+			get, err := l10.Get(i.Name, newMyItem2)
 			assert.Equal(t, err, nil)
 			assert.Equal(t, i.Equal(get), true)
 		}

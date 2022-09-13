@@ -7,9 +7,8 @@ require (
 	github.com/dgraph-io/badger/v3 v3.2103.2
 	github.com/fatih/color v1.13.0
 	github.com/natefinch/lumberjack v2.0.0+incompatible
-	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/spf13/viper v1.3.2
-	github.com/xujiajun/nutsdb v0.8.0
+	github.com/xujiajun/nutsdb v0.10.0
 	go.uber.org/zap v1.21.0
 )
 
@@ -28,11 +27,11 @@ require (
 	github.com/DataDog/zstd v1.4.5 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
-	github.com/cockroachdb/errors v1.8.1 // indirect
+	github.com/cockroachdb/errors v1.8.1
 	github.com/cockroachdb/logtags v0.0.0-20190617123548-eb05cc24525f // indirect
 	github.com/cockroachdb/redact v1.0.8 // indirect
 	github.com/cockroachdb/sentry-go v0.6.1-cockroachdb.2 // indirect
-	github.com/dgraph-io/ristretto v0.1.0 // indirect
+	github.com/dgraph-io/ristretto v0.1.0
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -59,9 +58,9 @@ require (
 	go.opencensus.io v0.22.5 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
-	golang.org/x/exp v0.0.0-20220325121720-054d8573a5d8
+	golang.org/x/exp v0.0.0-20220325121720-054d8573a5d8 // indirect
 	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2 // indirect
-	golang.org/x/sys v0.0.0-20211019181941-9d821ace8654 // indirect
+	golang.org/x/sys v0.0.0-20220405210540-1e041c57c461 // indirect
 	golang.org/x/text v0.3.8-0.20211105212822-18b340fc7af2 // indirect
 	google.golang.org/protobuf v1.26.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect

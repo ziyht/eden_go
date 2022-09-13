@@ -13,12 +13,13 @@ import (
 var nilVal []byte = nil
 
 func TestBasic(t *testing.T){
-	ExecBasicTestForDsn(t, "badger://test_data/badger")
-	//ExecTestForDsn(t, "nutsdb:test_data/nutsdb")
+	//ExecBasicTestForDsn(t, "badger:test_data/badger")
+	ExecBasicTestForDsn(t, "nutsdb:test_data/nutsdb")
 }
 
 func ExecBasicTestForDsn(t *testing.T, dsn string){
 	ExecTestBasic(t, dsn)
+	ExecTestVal(t, dsn)
 	ExecTestTTL(t, dsn)
 	ExecTestClose(t, dsn)
 	ExecTestSets(t, dsn)
@@ -47,19 +48,92 @@ func ExecTestBasic(t *testing.T, dsn string){
 
 	val1, _ := r.Get([]byte("key1"))
 	val2, _ := r.Get([]byte("key2"))
-	assert.Equal(t, []byte("value1"), val1)
-	assert.Equal(t, nilVal, val2)
+	assert.Equal(t, []byte("value1"), val1.Bytes())
+	assert.Equal(t, nilVal, val2.Bytes())
 
 	val1, _ = r.Get([]byte("key1"))
 	val2, _ = r.Get([]byte("key2"))
-	assert.Equal(t, []byte("value1"), val1)
-	assert.Equal(t, nilVal, val2)
+	assert.Equal(t, []byte("value1"), val1.Bytes())
+	assert.Equal(t, nilVal, val2.Bytes())
 
-	r.Dels([]byte("key1"), []byte("key2"))
+	err = r.Dels([]byte("key1"), []byte("key2"))
+	assert.Equal(t, nil, err)
 	val1, _ = r.Get([]byte("key1"))
 	val2, _ = r.Get([]byte("key2"))
-	assert.Equal(t, nilVal, val1)
-	assert.Equal(t, nilVal, val2)
+	assert.Equal(t, nilVal, val1.Bytes())
+	assert.Equal(t, nilVal, val2.Bytes())
+
+	err = r.Set("key1", "value1", time.Second * 10)
+	assert.Nil(t, err)
+	time.Sleep(time.Second)
+	v, expiresAt, err := r.GetEx("key1")
+	assert.Nil(t, err)
+	assert.Equal(t, "value1", v.Str())
+	now := uint64(time.Now().Unix())
+	diff := expiresAt - now
+	assert.True(t, diff > 8)
+	assert.True(t, diff < 10)
+}
+
+func ExecTestVal(t *testing.T, dsn string){
+	c, err := ecache.NewDBCache(dsn)
+	assert.Equal(t, nil, err)
+
+	defer c.Close()
+	defer c.Truncate()
+	
+	r := c.DfRegion()
+	
+	r.Set("true" , true)
+	r.Set("false", false)
+	r.Set("int8" , int8(8))
+	r.Set("int16", int16(16))
+	r.Set("int32", int32(32))
+	r.Set("int64", int64(64))
+	r.Set("uint8" , uint8(8))
+	r.Set("uint16", uint16(16))
+	r.Set("uint32", uint32(32))
+	r.Set("uint64", uint64(64))
+	r.Set("f32"   , float32(32.0))
+	r.Set("f64"   , float64(64.0))
+	r.Set("bytes" , []byte("bytes"))
+	r.Set("string", []byte("string"))
+	r.Set("time"  , time.Now())
+	r.Set("duration", time.Hour)
+
+	b1,  err := r.Get("true");     assert.Equal(t, nil, err)
+	b2,  err := r.Get("false");    assert.Equal(t, nil, err)
+	i8,  err := r.Get("int8");     assert.Equal(t, nil, err)
+	i16, err := r.Get("int16");    assert.Equal(t, nil, err)
+	i32, err := r.Get("int32");    assert.Equal(t, nil, err)
+	i64, err := r.Get("int64");    assert.Equal(t, nil, err)
+	u8,  err := r.Get("uint8");    assert.Equal(t, nil, err)
+	u16, err := r.Get("uint16");   assert.Equal(t, nil, err)
+	u32, err := r.Get("uint32");   assert.Equal(t, nil, err)
+	u64, err := r.Get("uint64");   assert.Equal(t, nil, err)
+	f32, err := r.Get("f32");      assert.Equal(t, nil, err)
+	f64, err := r.Get("f64");      assert.Equal(t, nil, err)
+	bin, err := r.Get("bytes");    assert.Equal(t, nil, err)
+	str, err := r.Get("string");   assert.Equal(t, nil, err)
+	t1,  err := r.Get("time");     assert.Equal(t, nil, err)
+	d,   err := r.Get("duration"); assert.Equal(t, nil, err)
+
+  assert.Equal(t, true, b1.Bool())
+	assert.Equal(t, false, b2.Bool())
+	assert.Equal(t, int8(8), i8.Int8())
+	assert.Equal(t, int16(16), i16.Int16())
+	assert.Equal(t, int32(32), i32.Int32())
+	assert.Equal(t, int64(64), i64.Int64())
+	assert.Equal(t, uint8(8) ,  u8.UInt8())
+	assert.Equal(t, uint16(16), u16.UInt16())
+	assert.Equal(t, uint32(32), u32.UInt32())
+	assert.Equal(t, uint64(64), u64.UInt64())
+	assert.Equal(t, float32(32.0), f32.Float32())
+	assert.Equal(t, float64(64.0), f64.Float64())
+	assert.Equal(t, []byte("bytes"), bin.Bytes())
+	assert.Equal(t, "string", str.Str())
+	assert.Equal(t, true, time.Since(t1.Time()) < time.Second)
+	assert.Equal(t, time.Hour, d.Duration())
 }
 
 func ExecTestTTL(t *testing.T, dsn string){
@@ -75,17 +149,17 @@ func ExecTestTTL(t *testing.T, dsn string){
 	r.Set([]byte("key1"), []byte("value1"), time.Second)
 	time.Sleep(time.Second)
 	val1, _ := r.Get([]byte("key1"))
-	assert.Equal(t, nilVal, val1)
+	assert.Equal(t, nilVal, val1.Bytes())
 
 	r.Set([]byte("key1"), []byte("value1"), time.Second)
 	r.Set([]byte("key1"), []byte("value1"))
 	time.Sleep(time.Second)
 	val1, _ = r.Get([]byte("key1"))
-	assert.Equal(t, []byte("value1"), val1)
+	assert.Equal(t, []byte("value1"), val1.Bytes())
 
 	r.Set([]byte("key1"), []byte("value1"), time.Second)
 	val1, _ = r.Get([]byte("key1"))
-	assert.Equal(t, []byte("value1"), val1)
+	assert.Equal(t, []byte("value1"), val1.Bytes())
 }
 
 func ExecTestClose(t *testing.T, dsn string){
@@ -110,13 +184,13 @@ func ExecTestClose(t *testing.T, dsn string){
 
 	val1, _ := r.Get([]byte("key1"))
 	val2, _ := r.Get([]byte("key2"))
-	assert.Equal(t, []byte("value1"), val1)
-	assert.Equal(t, nilVal, val2)
+	assert.Equal(t, []byte("value1"), val1.Bytes())
+	assert.Equal(t, nilVal, val2.Bytes())
 
 	val1, _ = r.Get([]byte("key1"))
 	val2, _ = r.Get([]byte("key2"))
-	assert.Equal(t, []byte("value1"), val1)
-	assert.Equal(t, nilVal, val2)
+	assert.Equal(t, []byte("value1"), val1.Bytes())
+	assert.Equal(t, nilVal, val2.Bytes())
 }
 
 func ExecTestSets(t *testing.T, dsn string){
@@ -140,7 +214,7 @@ func ExecTestSets(t *testing.T, dsn string){
 	gets, err := r.Gets(keys)
 	assert.Equal(t, nil, err)
 	for i := 0; i < 100; i++ {
-		assert.Equal(t, vals[i], gets[i])
+		assert.Equal(t, vals[i], gets[i].Bytes())
 	}
 }
 
@@ -164,7 +238,7 @@ func ExecTestIF_DoForKeys(t *testing.T, dsn string){
 
 	var keys[][]byte
 
-	err = r.SetObjs(objs,  func(idx int, ite interface{})(k []byte, v []byte, du time.Duration){
+	err = r.SetObjs(objs,  func(idx int, ite interface{})(k []byte, v any, du time.Duration){
 		i := ite.(*item)
 		keys = append(keys,[]byte(i.Key))
 		val, _ := json.Marshal(i)
@@ -173,12 +247,10 @@ func ExecTestIF_DoForKeys(t *testing.T, dsn string){
 	assert.Equal(t, nil, err)
 
 	gets := make([]*item, 0)
-	err = r.DoForKeys(keys, func(idx int, k []byte, val []byte)error{
+	err = r.DoForKeys(keys, func(idx int, k []byte, val ecache.Val)error{
 		i := new(item)
-		err := json.Unmarshal(val, i)
-		if err != nil {
-			return err
-		}
+		bin, err := val.GetBytes()  ; if err != nil { return err }
+		err = json.Unmarshal(bin, i); if err != nil { return err }
 		gets = append(gets, i)
 		return nil
 	})
@@ -206,7 +278,7 @@ func ExecTestIF_DoForAll(t *testing.T, dsn string){
 
 	var keys[][]byte
 
-	err = r.SetObjs(items, func(idx int, ite interface{})(k []byte, v []byte, du time.Duration){
+	err = r.SetObjs(items, func(idx int, ite interface{})(k []byte, v any, du time.Duration){
 		i := ite.(*item)
 		keys = append(keys,[]byte(i.Key))
 		val, _ := json.Marshal(i)
@@ -215,12 +287,10 @@ func ExecTestIF_DoForAll(t *testing.T, dsn string){
 	assert.Equal(t, nil, err)
 
 	gets := make([]*item, 0)
-	err = r.DoForAll(func(idx int, k []byte, val []byte)error{
+	err = r.DoForAll(func(idx int, k []byte, val ecache.Val)error{
 		i := new(item)
-		err := json.Unmarshal(val, i)
-		if err != nil {
-			return err
-		}
+		bin, err := val.GetBytes()  ; if err != nil { return err }
+		err = json.Unmarshal(bin, i); if err != nil { return err }
 		gets = append(gets, i)
 		return nil
 	})

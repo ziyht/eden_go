@@ -75,12 +75,8 @@ func (r *ItemRegion[T])getFromMem(k []byte, del...bool) (out T, ok bool) {
 	return 
 }
 
-func (r *ItemRegion[T])Del(key []byte) error {
-	r.mem.Del(key)
-	return r.db.del(r.meta.kpre, key)
-}
-
-func (r *ItemRegion[T])ADel(key any) error {
+// key and val can only be string or []byte
+func (r *ItemRegion[T])Del(key any) error {
 	k, err := toBytesKey(key)
 	if err != nil {
 		return err
@@ -90,8 +86,15 @@ func (r *ItemRegion[T])ADel(key any) error {
 	return r.db.del(r.meta.kpre, k)
 }
 
-func (r *ItemRegion[T])Set(key []byte, item T, ttl ...time.Duration) error {
-	val, err := item.Marshal(); 
+// key and val can only be string or []byte
+func (r *ItemRegion[T])Set(key any, item T, ttl ...time.Duration) error {
+	k, err := toBytesKey(key)
+	if err != nil {
+		return err
+	}
+
+	var raw Val
+	err = raw.setItem(item)
 	if err != nil {
 		return err
 	}
@@ -101,69 +104,85 @@ func (r *ItemRegion[T])Set(key []byte, item T, ttl ...time.Duration) error {
 		valid_ttl = ttl[0]
 	}
 
-	r.setToMem(key, item, 1, valid_ttl)
-	return r.db.set(r.meta.kpre, key, val, valid_ttl)
+	r.setToMem(k, item, 1, valid_ttl)
+	return r.db.setVal(r.meta.kpre, k, raw, valid_ttl)
 }
 
-func (r *ItemRegion[T])ASet(key any, item T, ttl ...time.Duration) error {
-	k, err := toBytesKey(key)
-	if err != nil {
-		return err
-	}
-	return r.Set(k, item, ttl...)
-}
+func (r *ItemRegion[T])__valToItem(val Val, new func() T)(out T, err error){
+  i := new()
 
-func (r *ItemRegion[T])Get(key []byte, new func() T, del...bool)(out T, err error) {
-	c, ok := r.getFromMem(key, del...)
-	if ok {
-		if len(del) > 0 && del[0] {
-			r.Del(key)
-		}
-
-		return c, nil
-	}
-
-	i := new()
-
-	data, expire, err := r.db.getExt(r.meta.kpre, key, del...)
+	err = val.Error()
 	if err != nil {
 		return
 	}
 
-	if data == nil {
+	if val.Type() != ITEM{
+		err = fmt.Errorf("invalid Raw type(%s)", val.__typeStr())
 		return
 	}
 
-	if err = i.Unmarshal(data); err != nil {
+	if err = i.Unmarshal(val.d); err != nil {
 		return 
-	}
-
-	if len(del) > 0 && del[0] {
-		r.db.del(r.meta.kpre, key)
-	} else if expire == 0 {
-		r.setToMem(key, i, 1, time.Duration(0))
-	} else {
-		r.setToMem(key, i, 1, time.Until(time.Unix(int64(expire), 0)))
 	}
 
 	return i, nil
 }
 
-func (r *ItemRegion[T])AGet(key any, new func() T, del...bool)(out T, err error){
+// key and val can only be string or []byte
+func (r *ItemRegion[T])Get(key any, new func() T, del...bool)(out T, err error) {
 	k, err := toBytesKey(key)
 	if err != nil {
 		return 
 	}
-	return r.Get(k, new, del...)
+
+	c, ok := r.getFromMem(k, del...)
+	if ok {
+		if len(del) > 0 && del[0] {
+			r.Del(k)
+		}
+
+		return c, nil
+	}
+
+	bin, expire, err := r.db.getBytesExt(r.meta.kpre, k, del...)
+	if err != nil {
+		return
+	}
+
+	if bin == nil {
+		return
+	}
+
+	var val Val; val.unmarshal(bin)
+	i, err := r.__valToItem(val, new)
+	if err != nil {
+		return
+	}
+
+	if len(del) > 0 && del[0] {
+		r.db.del(r.meta.kpre, k)
+	} else if expire == 0 {
+		r.setToMem(k, i, 1, time.Duration(0))
+	} else {
+		r.setToMem(k, i, 1, time.Until(time.Unix(int64(expire), 0)))
+	}
+
+	return i, nil
 }
 
 // Gets
-// - skipErrs_Del_RetainNil: this is a three-bool-value to set options
-//   skipErrs : if is true, it will continue when err occurs in Unmarshal operations
-//   Del      : if is true, the keys will be deleted after all the operations
-//   RetainNil: if is true, the nil value which created by err and not_found will be retain in the results
-func (r *ItemRegion[T])Gets(keys [][]byte, new func() T, skipErrs_Del_RetainNil...bool)(items []T, err error){
-	if len(keys) == 0 {
+//   keys: can only be string, []string, []byte or [][]byte
+//   skipErrs_Del_RetainNil: this is a three-bool-value options:
+//     skipErrs : if is true, it will continue when err occurs in Unmarshal operations
+//     Del      : if is true, the keys will be deleted after all the operations
+//     RetainNil: if is true, the nil value which created by err and not_found will be retain in the results
+func (r *ItemRegion[T])Gets(keys any, new func() T, skipErrs_Del_RetainNil...bool)(items []T, err error){
+	ks, err := toBytesArr(keys)
+	if err != nil {
+		return nil, fmt.Errorf("invalid type(%t) of input keys: %s", keys, err)
+	}
+
+	if len(ks) == 0 {
 		return nil, err
 	}
 
@@ -171,17 +190,17 @@ func (r *ItemRegion[T])Gets(keys [][]byte, new func() T, skipErrs_Del_RetainNil.
 	retainNil := len(skipErrs_Del_RetainNil) > 2 && skipErrs_Del_RetainNil[2]
 
 	if err := r.db.db.View(func(tx driver.TX)error{
-		for _, key := range keys {
+		for _, key := range ks {
 			i, ok := r.getFromMem(key)
 			if ok {
 				items = append(items, i)
 				continue
 			}
 
-			val, _, err := tx.Get(r.meta.kpre, key)
+			bin, _, err := tx.Get(r.meta.kpre, key)
 			if err == nil {
-				i2 := new()
-				err = i2.Unmarshal(val)
+				var val Val; val.unmarshal(bin)
+				i2, err := r.__valToItem(val, new)
 				if err == nil {
 					items = append(items, i2)
 					continue
@@ -204,29 +223,20 @@ func (r *ItemRegion[T])Gets(keys [][]byte, new func() T, skipErrs_Del_RetainNil.
 	}
 
 	if len(skipErrs_Del_RetainNil) > 1 && skipErrs_Del_RetainNil[1] {
-		r.mem.Dels(keys)
-		r.db.dels(r.meta.kpre, keys...)
+		r.mem.Dels(ks)
+		r.db.dels(r.meta.kpre, ks...)
 		r.mem.Wait()
 	} 
 
 	return 
 }
 
-func (r *ItemRegion[T])AGets(keys any, new func() T, skipErrs_Del_RetainNil...bool)(items []T, err error){
-	ks, err := toBytesArr(keys)
-	if err != nil {
-		return nil, fmt.Errorf("invalid type(%t) of input keys: %s", keys, err)
-	}
-	return r.Gets(ks, new, skipErrs_Del_RetainNil...)
-}
-
 func (r *ItemRegion[T])GetAll(new func() T, skipErrs... bool) ([]T, error) {
 	var items []T
 	skipErr := len(skipErrs) > 0 && skipErrs[0]
-	err := r.db.doForAllEx(r.meta.kpre, func(idx int, key []byte, val []byte, expiresAt uint64) error{
+	err := r.db.doForAllEx(r.meta.kpre, func(idx int, key []byte, val Val, expiresAt uint64) error{
 
-		i := new()
-		err := i.Unmarshal(val)
+		i, err := r.__valToItem(val, new)
 		if err == nil {
 			items = append(items, i)
 			r.setToMem(key, i, 1, time.Until(time.Unix(int64(expiresAt), 0)))
@@ -242,14 +252,13 @@ func (r *ItemRegion[T])GetAll(new func() T, skipErrs... bool) ([]T, error) {
 
 func (r *ItemRegion[T])ReloadItems(new func() T)(int, error) {
 	if r.mem == nil {
-		return 0, fmt.Errorf("internal mem")
+		return 0, fmt.Errorf("internal memcache not enabled")
 	}
 
 	cnt := 0
-	err := r.db.doForAllEx(r.meta.kpre, func(idx int, key []byte, val []byte, expiresAt uint64) error{
+	err := r.db.doForAllEx(r.meta.kpre, func(idx int, key []byte, val Val, expiresAt uint64) error{
 
-		i := new()
-		err := i.Unmarshal(val)
+		i, err := r.__valToItem(val, new)
 		if err == nil {
 		cnt += 1
 			r.setToMem(key, i, 1, time.Until(time.Unix(int64(expiresAt), 0)))

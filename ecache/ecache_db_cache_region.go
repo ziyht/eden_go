@@ -35,32 +35,17 @@ func (r *Region)SetDefaultTTL(ttl time.Duration) {
 	r.ttl = ttl
 }
 
-func (r *Region)Set(key []byte, val []byte, ttl ...time.Duration) error {
-	if len(ttl) > 0 {
-		return r.db.set(r.meta.kpre, key, val, ttl...)
-	}
-
-	return r.db.set(r.meta.kpre, key, val, r.ttl)
-}
-
 // key and val can only be string or []byte
-func (r *Region)ASet(key any, val any, ttl ...time.Duration) error {
+func (r *Region)Set(key any, val any, ttl ...time.Duration) error {
 	if len(ttl) > 0 {
 		return r.db.setAny(r.meta.kpre, key, val, ttl...)
 	}
+
 	return r.db.setAny(r.meta.kpre, key, val, r.ttl)
 }
 
-func (r *Region)Sets(keys [][]byte, vals [][]byte, ttls ...time.Duration) error {
-	if len(ttls) > 0 {
-		return r.db.sets(r.meta.kpre, keys, vals, ttls...)
-	}
-
-	return r.db.sets(r.meta.kpre, keys, vals, r.ttl)
-}
-
 // key and val can only be string, []string, []byte or [][]byte
-func (r *Region)ASets(keys any, vals any, ttls ...time.Duration) error {
+func (r *Region)Sets(keys any, vals any, ttls ...time.Duration) error {
 	if len(ttls) > 0 {
 		return r.db.setsAny(r.meta.kpre, keys, vals, ttls...)
 	}
@@ -68,60 +53,46 @@ func (r *Region)ASets(keys any, vals any, ttls ...time.Duration) error {
 	return r.db.setsAny(r.meta.kpre, keys, vals, r.ttl)
 }
 
-func (r *Region)SetObjs(items []any, fn func(int, any)(k[]byte, v[]byte, ttl time.Duration))error{
+func (r *Region)SetObjs(items []any, fn func(int, any)(k []byte, v any, ttl time.Duration))error{
 	return r.db.setObjs(r.meta.kpre, items, fn)
 }
 
-func (r *Region)Get(key []byte, del ...bool)([]byte, error){
-	return r.db.get(r.meta.kpre, key, del...)
-}
-
 // key can only be string or []byte
-func (r *Region)AGet(key any, del ...bool)([]byte, error){
+func (r *Region)Get(key any, del ...bool)(Val, error){
 	return r.db.getAny(r.meta.kpre, key, del...)
 }
 
-func (r *Region)Gets(keys [][]byte, del ...bool)([][]byte, error){
-	return r.db.gets(r.meta.kpre, keys, del...)
+// key can only be string or []byte
+func (r *Region)GetEx(key any, del ...bool)(Val, uint64, error){
+	return r.db.getAnyEx(r.meta.kpre, key, del...)
 }
 
 // key can only be string, []strng, []byte or [][]byte
-func (r *Region)AGets(keys any, del ...bool)([][]byte, error){
+func (r *Region)Gets(keys any, del ...bool)([]Val, error){
 	return r.db.getsAny(r.meta.kpre, keys, del...)
 }
 
 // GetAll - returns all keys and values in this region
-func (r *Region)GetAll()([][]byte, [][]byte, error){
+func (r *Region)GetAll()([][]byte, []Val, error){
 	return r.db.getAll(r.meta.kpre)
 }
 
-func (r *Region)Del(key []byte)(error){
-	return r.db.del(r.meta.kpre, key)
-}
-
 // key can only be string or []byte
-func (r *Region)ADel(key any)(error){
+func (r *Region)Del(key any)(error){
 	return r.db.delAny(r.meta.kpre, key)
 }
 
-func (r *Region)Dels(keys... []byte)(error){
-	return r.db.dels(r.meta.kpre, keys...)
-}
-
 // key can only be string, []strng, []byte or [][]byte
-func (r *Region)ADels(keys ...any) (error) {
+func (r *Region)Dels(keys ...any) (error) {
 	return r.db.delsAny(r.meta.kpre, keys...)
 }
 
-func (r *Region)DoForAll(fn func(idx int, key []byte, val []byte) error)error{
+func (r *Region)DoForAll(fn func(idx int, key []byte, val Val) error)error{
 	return r.db.doForAll(r.meta.kpre, fn)
 }
 
-func (r *Region)DoForKeys(keys [][]byte, fn func(idx int, key []byte, val []byte) error)error{
-	return r.db.doForKeys(r.meta.kpre, keys, fn)
-}
-
-func (r *Region)ADoForKeys(keys any, fn func(idx int, key []byte, val []byte) error)error{
+// key can only be string, []strng, []byte or [][]byte
+func (r *Region)DoForKeys(keys any, fn func(idx int, key []byte, val Val) error)error{
 	return r.db.doForKeysAny(r.meta.kpre, keys, fn)
 }
 

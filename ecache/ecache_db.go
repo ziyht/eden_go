@@ -25,19 +25,29 @@ func newDB(dsn string) (*db, error) {
 	return &db{dsn: dsn, db: db_}, nil
 }
 
-func (db *db)set(pre []byte, key []byte, val []byte, ttl ... time.Duration) error {
+func (db *db)setVal(pre []byte, key []byte, val Val, ttl ...time.Duration)error{
+	if val.Type() == UNKNOWN || val.Type() >= VT_MAX{
+		return fmt.Errorf("invalid value type(%s) to set to DB", val.__typeStr())
+	}
+
 	return db.db.Update(func(tx driver.TX)error{
-		return tx.Set(pre, key, val, ttl...)
+		return tx.Set(pre, key, val.marshal(), ttl...)
 	})
 }
 
 func (db *db)setAny(pre []byte, key any, val any, ttl ...time.Duration) error {
-	k, v, err := toBytesKeyVal(key, val)
+	k, err := toBytesKey(key)
 	if err != nil {
 		return err
 	}
+
+	raw, err := NewVal(val)
+	if err != nil {
+		return err
+	}
+
 	return db.db.Update(func(tx driver.TX)error{
-		return tx.Set(pre, k, v, ttl...)
+		return tx.Set(pre, k, raw.marshal(), ttl...)
 	})
 }
 
@@ -74,7 +84,9 @@ func (db *db)sets(prefix []byte, keys [][]byte, vals [][]byte, ttls ... time.Dur
 			cnt := 0
 			for ; i < lk && cnt < 1000; i++ {
 
-				if err := tx.Set(prefix, keys[i], _val_getter(vals, i), _ttl_getter(ttls, i)...); err != nil {
+				bin := _val_getter(vals, i)
+				var val Val; val.setBytes(bin)
+				if err := tx.Set(prefix, keys[i], val.marshal(), _ttl_getter(ttls, i)...); err != nil {
 					return err
 				}
 				
@@ -101,30 +113,37 @@ func (db *db)setsAny(prefix []byte, keys any, vals any, ttls ... time.Duration) 
 	return db.sets(prefix, ks, vs, ttls...)
 }
 
-func (db *db)get(prefix []byte, key []byte, del ...bool)(val []byte, err error) {
-	db.db.View(func(tx driver.TX)error{
-		val, _, err = tx.Get(prefix, key, del...)
-		return err
-	})
-
-	return
-}
-
-func (db *db)getAny(prefix []byte, key any, del ...bool)(val []byte, err error) {
+func (db *db)getAny(prefix []byte, key any, del ...bool)(val Val, err error) {
 	k, err := toBytesKey(key)
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	db.db.View(func(tx driver.TX)error{
-		val, _, err = tx.Get(prefix, k, del...)
+	err = db.db.View(func(tx driver.TX)error{
+		bin, _, err := tx.Get(prefix, k, del...)
+		val.unmarshal(bin)
 		return err
 	})
 
 	return
 }
 
-func (db *db)getExt(prefix []byte, key []byte, del ...bool)(val []byte, expiresAt uint64, err error) {
+func (db *db)getAnyEx(prefix []byte, key any, del ...bool)(val Val, expiresAt uint64, err error) {
+	k, err := toBytesKey(key)
+	if err != nil {
+		return
+	}
+
+	err = db.db.View(func(tx driver.TX)error{
+		val.d, expiresAt, err = tx.Get(prefix, k, del...)
+		val.unmarshal(val.d)
+		return err
+	})
+
+	return
+}
+
+func (db *db)getBytesExt(prefix []byte, key []byte, del ...bool)(val []byte, expiresAt uint64, err error) {
 	db.db.View(func(tx driver.TX)error{
 		val, expiresAt, err = tx.Get(prefix, key, del...)
 		return err
@@ -133,13 +152,15 @@ func (db *db)getExt(prefix []byte, key []byte, del ...bool)(val []byte, expiresA
 	return
 }
 
-func (db *db)gets(prefix []byte, keys [][]byte, del ...bool)(vals [][]byte, err error) {
+func (db *db)gets(prefix []byte, keys [][]byte, del ...bool)(vals []Val, err error) {
 	err = db.db.View(func(tx driver.TX)error{
+		var val Val
 		for _, key := range keys {
-			val, _, err := tx.Get(prefix, key, del...)
+			val.d, _, err = tx.Get(prefix, key, del...)
 			if err != nil {
 				return err
 			}
+			val.unmarshal(val.d)
 			vals = append(vals, val)
 		}
 
@@ -149,13 +170,14 @@ func (db *db)gets(prefix []byte, keys [][]byte, del ...bool)(vals [][]byte, err 
 	return
 }
 
-func (db *db)getsAny(prefix []byte, keys any, del ...bool)(vals [][]byte, err error) {
+func (db *db)getsAny(prefix []byte, keys any, del ...bool)(vals []Val, err error) {
 	err = db.db.View(func(tx driver.TX)error{
+		var val Val
 		switch k := keys.(type) {
-			case string  : val, _, err := tx.Get(prefix, []byte(k), del...); if err != nil { return err }; vals = append(vals, val)
-			case []byte  : val, _, err := tx.Get(prefix,        k , del...); if err != nil { return err }; vals = append(vals, val)
-			case []string: for _, tk := range k { val, _, err := tx.Get(prefix, []byte(tk), del...); if err != nil { return err }; vals = append(vals, val)  }
-			case [][]byte: for _, tk := range k { val, _, err := tx.Get(prefix,        tk , del...); if err != nil { return err }; vals = append(vals, val)  }
+			case string  : bin, _, err := tx.Get(prefix, []byte(k), del...); if err != nil { return err }; val.unmarshal(bin); vals = append(vals, val)
+			case []byte  : bin, _, err := tx.Get(prefix,        k , del...); if err != nil { return err }; val.unmarshal(bin); vals = append(vals, val)
+			case []string: for _, tk := range k { bin, _, err := tx.Get(prefix, []byte(tk), del...); if err != nil { return err }; val.unmarshal(bin); vals = append(vals, val)  }
+			case [][]byte: for _, tk := range k { bin, _, err := tx.Get(prefix,        tk , del...); if err != nil { return err }; val.unmarshal(bin); vals = append(vals, val)  }
 			default      : return fmt.Errorf("invalid key type, only support: string, []string, []byte and [][]byte")
 		}
 
@@ -165,9 +187,12 @@ func (db *db)getsAny(prefix []byte, keys any, del ...bool)(vals [][]byte, err er
 	return
 }
 
-func (db *db)getAll(prefix []byte, restore... bool)(keys [][]byte, vals [][]byte, err error) {
+func (db *db)getAll(prefix []byte, restore... bool)(keys [][]byte, vals []Val, err error) {
 	err = db.db.View(func(tx driver.TX)error{
-		return tx.Iterate(prefix, func(_ int, key []byte, val []byte, _ uint64)error{
+		var val Val
+		return tx.Iterate(prefix, func(_ int, key []byte, val_ []byte, _ uint64)error{
+			val.unmarshal(val_)
+
 			keys = append(keys, key)
 			vals = append(vals, val)
 			return nil
@@ -212,21 +237,27 @@ func (db *db)delsAny(prefix []byte, keys ...any) error {
 				case []byte  : if err := tx.Del(prefix,        k ); err != nil { return err }
 				case []string: for _, tk := range k { if err := tx.Del(prefix, []byte(tk)); err != nil { return err }  }
 				case [][]byte: for _, tk := range k { if err := tx.Del(prefix,        tk ); err != nil { return err }  }
+				default: return fmt.Errorf("invalid key type(%t) at idx(:%d), only support: string, []string, []byte and [][]byte", k, idx)
 			}
-			return fmt.Errorf("invalid key type at idx(:%d), only support: string, []string, []byte and [][]byte", idx)
 		}
 		return nil
 	})
 }
 
-func (db *db)setObjs(prefix []byte, objs []any, fn func(int, any)(key []byte, val []byte, ttl time.Duration))(err error) {
+func (db *db)setObjs(prefix []byte, objs []any, fn func(int, any)(key []byte, val any, ttl time.Duration))(err error) {
 	len := len(objs)
 	for i := 0; i < len; {
 		if err = db.db.Update(func(tx driver.TX)error{
 			cnt := 0
 			for ; i < len && cnt < 1000; i++ {
-				key, val, ttl := fn(i, objs[i])
-				err = tx.Set(prefix, key, val, ttl)
+				key, val_, ttl := fn(i, objs[i])
+
+				val, err := NewVal(val_)
+				if err != nil {
+					return err
+				}
+
+				err = tx.Set(prefix, key, val.marshal(), ttl)
 				if err != nil {
 					return err
 				}
@@ -241,30 +272,37 @@ func (db *db)setObjs(prefix []byte, objs []any, fn func(int, any)(key []byte, va
 	return nil
 }
 
-func (db *db)doForAll(prefix []byte, fn func(idx int, key []byte, val []byte) error) (err error) {
+func (db *db)doForAll(prefix []byte, fn func(idx int, key []byte, val Val) error) (err error) {
 	return db.db.View(func(tx driver.TX)error{
-		return tx.Iterate(prefix, func(idx int, key []byte, val []byte, _ uint64)error{
+		var val Val
+		return tx.Iterate(prefix, func(idx int, key []byte, bin []byte, _ uint64)error{
+			val.unmarshal(bin)
 			return fn(idx, key, val)
 		})
 	})
 }
 
-func (db *db)doForAllEx(prefix []byte, fn func(idx int, key []byte, val []byte, expiresAt uint64) error) (err error) {
+func (db *db)doForAllEx(prefix []byte, fn func(idx int, key []byte, val Val, expiresAt uint64) error) (err error) {
 	return db.db.View(func(tx driver.TX)error{
-		return tx.Iterate(prefix, func(idx int, key []byte, val []byte, expiresAt uint64)error{
+		var val Val
+		return tx.Iterate(prefix, func(idx int, key []byte, bin []byte, expiresAt uint64)error{
+			val.unmarshal(bin)
 			return fn(idx,  key, val, expiresAt)
 		})
 	})
 }
 
-func (db *db)doForKeys(prefix []byte, keys [][]byte, fn func(idx int, key []byte, val []byte) error) (err error) {
+func (db *db)doForKeys(prefix []byte, keys [][]byte, fn func(idx int, key []byte, val Val) error) (err error) {
 	return db.db.View(func(tx driver.TX)error{
+		var val Val
+
 		for i, key := range keys {
-			val, _, err := tx.Get(prefix, key)
+			bin, _, err := tx.Get(prefix, key)
 			if err != nil {
 				return err 
 			}
 
+			val.unmarshal(bin)
 			if err = fn(i, key, val); err != nil {
 				return err
 			}
@@ -273,19 +311,21 @@ func (db *db)doForKeys(prefix []byte, keys [][]byte, fn func(idx int, key []byte
 	})
 }
 
-func (db *db)doForKeysAny(prefix []byte, keys any, fn func(idx int, key []byte, val []byte) error) (err error) {
+func (db *db)doForKeysAny(prefix []byte, keys any, fn func(idx int, key []byte, val Val) error) (err error) {
 	ks, err := toBytesArr(keys)
 	if err != nil {
 		return fmt.Errorf("invalid type(%t) of keys: %s", keys, err)
 	}
 
+	var val Val
 	return db.db.View(func(tx driver.TX)error{
 		for i, key := range ks {
-			val, _, err := tx.Get(prefix, key)
+			bin, _, err := tx.Get(prefix, key)
 			if err != nil {
 				return err 
 			}
 
+			val.unmarshal(bin)
 			if err = fn(i, key, val); err != nil {
 				return err
 			}

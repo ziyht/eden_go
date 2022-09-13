@@ -10,8 +10,8 @@ import (
 )
 
 func TestRegion(t *testing.T){
-	ExecRegionTestForDsn(t, "badger:test_data/badger2")
-	//ExecTestForDsn(t, "nutsdb:test_data/nutsdb")
+	//ExecRegionTestForDsn(t, "badger:test_data/badger2")
+	ExecRegionTestForDsn(t, "nutsdb:test_data/nutsdb")
 }
 
 func ExecRegionTestForDsn(t *testing.T, dsn string){
@@ -40,7 +40,7 @@ func ExecTestRegion_Basic(t *testing.T, dsn string){
 	var keys1[][]byte
 	var keys2[][]byte
 
-	err = r.SetObjs(items, func(idx int, ite interface{})(k []byte, v []byte, du time.Duration){
+	err = r.SetObjs(items, func(idx int, ite interface{})(k []byte, v any, du time.Duration){
 		i := ite.(*item)
 		keys = append(keys,[]byte(i.Key))
 		val, _ := json.Marshal(i)
@@ -49,7 +49,7 @@ func ExecTestRegion_Basic(t *testing.T, dsn string){
 	assert.Equal(t, nil, err)
 
 	// 这里写入到 r1，不应该影响其它 region 的数据
-	err = r1.SetObjs(items, func(idx int, ite interface{})(k []byte, v []byte, du time.Duration){
+	err = r1.SetObjs(items, func(idx int, ite interface{})(k []byte, v any, du time.Duration){
 		i := ite.(*item)
 		keys1 = append(keys1,[]byte(i.Key))
 		val, _ := json.Marshal(i)
@@ -58,7 +58,7 @@ func ExecTestRegion_Basic(t *testing.T, dsn string){
 	assert.Equal(t, nil, err)
 
 	// 这里写入到 r2，不应该影响其它 region 的数据
-	err = r2.SetObjs(items, func(idx int, ite interface{})(k []byte, v []byte, du time.Duration){
+	err = r2.SetObjs(items, func(idx int, ite interface{})(k []byte, v any, du time.Duration){
 		i := ite.(*item)
 		keys2 = append(keys2,[]byte(i.Key))
 		val, _ := json.Marshal(i)
@@ -67,12 +67,10 @@ func ExecTestRegion_Basic(t *testing.T, dsn string){
 	assert.Equal(t, nil, err)
 
 	gets := make([]*item, 0)
-	err = r.DoForAll(func(idx int, k []byte, val []byte)error{
+	err = r.DoForAll(func(idx int, k []byte, val ecache.Val)error{
 		i := new(item)
-		err := json.Unmarshal(val, i)
-		if err != nil {
-			return err
-		}
+		bin, err := val.GetBytes()  ; if err != nil { return err }
+		err = json.Unmarshal(bin, i); if err != nil { return err }
 		gets = append(gets, i)
 		return nil
 	})
@@ -83,12 +81,10 @@ func ExecTestRegion_Basic(t *testing.T, dsn string){
 	}
 
 	gets1 := make([]*item, 0)
-	err = r1.DoForAll(func(idx int, k []byte, val []byte)error{
+	err = r1.DoForAll(func(idx int, k []byte, val ecache.Val)error{
 		i := new(item)
-		err := json.Unmarshal(val, i)
-		if err != nil {
-			return err
-		}
+		bin, err := val.GetBytes()  ; if err != nil { return err }
+		err = json.Unmarshal(bin, i); if err != nil { return err }
 		gets1 = append(gets1, i)
 		return nil
 	})
@@ -99,12 +95,10 @@ func ExecTestRegion_Basic(t *testing.T, dsn string){
 	}
 
 	gets2 := make([]*item, 0)
-	err = r1.DoForAll(func(idx int, k []byte, val []byte)error{
+	err = r1.DoForAll(func(idx int, k []byte, val ecache.Val)error{
 		i := new(item)
-		err := json.Unmarshal(val, i)
-		if err != nil {
-			return err
-		}
+		bin, err := val.GetBytes()  ; if err != nil { return err }
+		err = json.Unmarshal(bin, i); if err != nil { return err }
 		gets2 = append(gets2, i)
 		return nil
 	})
