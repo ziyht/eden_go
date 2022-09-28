@@ -1,13 +1,13 @@
-package elog
+package main
 
 import "github.com/ziyht/eden_go/elog"
 
-func runInterfaceTutorial(){
+func main(){
 
-	// interfaceTagTutorail()
-	// interfaceLevelTutorail()
-	// interfaceMultiFileTutorail()
-	// interfaceSLevelTutorail()
+	interfaceTagTutorail()
+	interfaceLevelTutorail()
+	interfaceMultiFileTutorail()
+	interfaceSLevelTutorail()
 	interfaceColorTutorail()
 }
 

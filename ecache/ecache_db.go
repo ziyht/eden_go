@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ziyht/eden_go/ecache/driver"
+	"github.com/ziyht/eden_go/utils/ptr"
 )
 
 type db struct {
@@ -26,7 +27,7 @@ func newDB(dsn string) (*db, error) {
 }
 
 func (db *db)setVal(pre []byte, key []byte, val Val, ttl ...time.Duration)error{
-	if val.Type() == UNKNOWN || val.Type() >= VT_MAX{
+	if val.Type() == Nil || val.Type() >= VT_MAX{
 		return fmt.Errorf("invalid value type(%s) to set to DB", val.__typeStr())
 	}
 
@@ -174,10 +175,10 @@ func (db *db)getsAny(prefix []byte, keys any, del ...bool)(vals []Val, err error
 	err = db.db.View(func(tx driver.TX)error{
 		var val Val
 		switch k := keys.(type) {
-			case string  : bin, _, err := tx.Get(prefix, []byte(k), del...); if err != nil { return err }; val.unmarshal(bin); vals = append(vals, val)
-			case []byte  : bin, _, err := tx.Get(prefix,        k , del...); if err != nil { return err }; val.unmarshal(bin); vals = append(vals, val)
-			case []string: for _, tk := range k { bin, _, err := tx.Get(prefix, []byte(tk), del...); if err != nil { return err }; val.unmarshal(bin); vals = append(vals, val)  }
-			case [][]byte: for _, tk := range k { bin, _, err := tx.Get(prefix,        tk , del...); if err != nil { return err }; val.unmarshal(bin); vals = append(vals, val)  }
+			case string  : bin, _, err := tx.Get(prefix, ptr.StringToBytes(k), del...); if err != nil { return err }; val.unmarshal(bin); vals = append(vals, val)
+			case []byte  : bin, _, err := tx.Get(prefix,                   k , del...); if err != nil { return err }; val.unmarshal(bin); vals = append(vals, val)
+			case []string: for _, tk := range k { bin, _, err := tx.Get(prefix, ptr.StringToBytes(tk), del...); if err != nil { return err }; val.unmarshal(bin); vals = append(vals, val)  }
+			case [][]byte: for _, tk := range k { bin, _, err := tx.Get(prefix,                   tk , del...); if err != nil { return err }; val.unmarshal(bin); vals = append(vals, val)  }
 			default      : return fmt.Errorf("invalid key type, only support: string, []string, []byte and [][]byte")
 		}
 

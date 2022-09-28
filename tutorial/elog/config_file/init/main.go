@@ -1,16 +1,13 @@
-package elog
+package main
 
 import "github.com/ziyht/eden_go/elog"
 
 
-func runConfigFileTutorial(){
-	// parsingConfigFileTutorial()
-	// pasingSpecficKeyTutorial()
-}
+var	syslog = elog.Logger().Log(elog.Opt().NoFile()).Named("[SYSLOG]")
 
-func parsingConfigFileTutorial() {
+func main() {
 
-	elog.InitFromFile("config/elog.yml")
+	elog.InitFromFile("../elog.yml")
 
 	syslog.Infof("----------------- runConfigTutorial: default logger ---------------")
 	log := elog.Logger().Log().Named("[default]")
@@ -48,14 +45,4 @@ func parsingConfigFileTutorial() {
 	log.Errorf("output error")
 }
 
-func pasingSpecficKeyTutorial(){
-
-	logger := elog.LoggerFromFile("config/elog.yml", "elog.lo")
-	log1 := logger.Log()
-  log1.Debugf("output debug")  // in default setting, it will not output
-	log1.Infof( "output info")
-	log1.Warnf( "output warn")
-	log1.Errorf("output error")
-
-}
 

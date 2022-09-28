@@ -10,19 +10,31 @@ import (
 	"github.com/ziyht/eden_go/utils/ptr"
 )
 
-var nilVal []byte = nil
+//var nilVal []byte = nil
+var val512 []byte
 
 func TestAll(t *testing.T){
-	//ExecTestForDsn(t, "badger:test_data/badger")
+	for i := 0; i < 512; i++ {
+		val512 = append(val512, byte(i % 10))
+	}
+
+	ExecTestForDsn(t, "badger:test_data/badger")
 	ExecTestForDsn(t, "nutsdb:test_data/nutsdb")
 }
 
 func ExecTestForDsn(t *testing.T, dsn string){
+	c, err := ecache.NewDBCache(dsn)
+	if !assert.Equal(t, nil, err){
+		return
+	}
+	c.Truncate()
+	c.Close()
 
-	// ExecInsert(t, dsn, 1000000)
+	t.Logf("------------- %s ---------------", dsn)
+
+	ExecInsert(t, dsn, 1000000)
   ExecSet512(t, dsn, 1000000)
 	ExecSets512(t, dsn, 1000000)
-	ExecSets512Any(t, dsn, 1000000)
 }
 
 func ExecInsert(t *testing.T, dsn string, cnt int){
@@ -39,7 +51,7 @@ func ExecInsert(t *testing.T, dsn string, cnt int){
 	for _, k := range keys {
 		r.Set(k, k)
 	}
-	t.Logf("%s: insert %d keys: cost %s", dsn, cnt, time.Since(start))
+	t.Logf("set %d keys(v = k) for each: cost %s", cnt, time.Since(start))
 
 	c.Truncate()
 	c.Close()
@@ -50,21 +62,18 @@ func ExecSet512(t *testing.T, dsn string, cnt int){
 	assert.Equal(t, nil, err)
 	r := c.DfRegion()
 
-	c.Truncate()
-
 	keys := [][]byte{}
 	for i := 0; i < cnt; i++ {
 		keys = append(keys, []byte(fmt.Sprintf("%d", i)))
 	}
 
-	v := make([]byte, 512)
-
 	start := time.Now()
 	for _, k := range keys {
-		r.Set(k, v)
+		r.Set(k, val512)
 	}
-	t.Logf("%s: insert %d keys: cost %s", dsn, cnt, time.Since(start))
+	t.Logf("set %d keys(512val) for each: cost %s", cnt, time.Since(start))
 
+	c.Truncate()
 	c.Close()
 }
 
@@ -73,71 +82,48 @@ func ExecSets512(t *testing.T, dsn string, cnt int){
 	assert.Equal(t, nil, err)
 	r := c.DfRegion()
 
-	c.Truncate()
-
 	keys := [][]byte{}
 	for i := 0; i < cnt; i++ {
 		keys = append(keys, []byte(fmt.Sprintf("%d", i)))
 	}
 
-	v := make([]byte, 512)
-
 	start := time.Now()
-	err = r.Sets(keys, [][]byte{v})
+	err = r.Sets(keys, val512)
 	assert.Equal(t, nil, err)
-	t.Logf("%s: set by keys: %d keys: cost %s", dsn, cnt, time.Since(start))
+	t.Logf("set %d keys(512val) by group: cost %s", cnt, time.Since(start))
+
+	var vals []ecache.Val
+	var val ecache.Val
+	start = time.Now()
+	for _, k := range keys {
+		val, err = r.Get(k)
+		assert.Equal(t, nil, err)
+		vals = append(vals, val)
+	}
+	assert.Equal(t, cnt, len(vals))
+	t.Logf("get %d keys(512val) for each: cost %s", len(vals), time.Since(start))
+	for _, val := range vals {
+		if !assert.Equal(t, val512, val.Bytes()){
+			return
+		}
+	}
 
 	start = time.Now()
-	vals, err := r.Gets(keys)
+	vals, err = r.Gets(keys)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, cnt, len(vals))
-	t.Logf("%s: get by keys: %d keys: cost %s", dsn, len(vals), time.Since(start))
+	t.Logf("get %d keys(512val) by group: cost %s", len(vals), time.Since(start))
 
 	start = time.Now()
 	keys, vals, err = r.GetAll()
 	assert.Equal(t, nil, err)
 	assert.Equal(t, cnt, len(keys))
 	assert.Equal(t, cnt, len(vals))
-	t.Logf("%s: get all    : %d keys: cost %s", dsn, len(keys), time.Since(start))
+	t.Logf("get %d keys(512val) by getall: cost %s", len(keys), time.Since(start))
 
-	c.Close()
+	// c.Truncate()
+	// c.Close()
 }
-
-func ExecSets512Any(t *testing.T, dsn string, cnt int){
-	c, err := ecache.NewDBCache(dsn)
-	assert.Equal(t, nil, err)
-	r := c.DfRegion()
-
-	c.Truncate()
-
-	keys := [][]byte{}
-	for i := 0; i < cnt; i++ {
-		keys = append(keys, []byte(fmt.Sprintf("%d", i)))
-	}
-
-	v := make([]byte, 512)
-
-	start := time.Now()
-	err = r.Sets(keys, [][]byte{v})
-	assert.Equal(t, nil, err)
-	t.Logf("%s: set by keys: %d keys: cost %s", dsn, cnt, time.Since(start))
-
-	start = time.Now()
-	vals, err := r.Gets(keys)
-	assert.Equal(t, nil, err)
-	assert.Equal(t, cnt, len(vals))
-	t.Logf("%s: get by keys: %d keys: cost %s", dsn, len(vals), time.Since(start))
-
-	start = time.Now()
-	keys, vals, err = r.GetAll()
-	assert.Equal(t, nil, err)
-	assert.Equal(t, cnt, len(keys))
-	assert.Equal(t, cnt, len(vals))
-	t.Logf("%s: get all    : %d keys: cost %s", dsn, len(keys), time.Since(start))
-
-	c.Close()
-}
-
 
 func toBytesKey(key any)([]byte, error){
 	switch k := key.(type) {

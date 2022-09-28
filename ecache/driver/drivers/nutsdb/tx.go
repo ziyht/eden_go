@@ -1,8 +1,10 @@
 package nutsdb
 
 import (
+	"fmt"
 	"time"
 
+	"github.com/golang/snappy"
 	"github.com/xujiajun/nutsdb"
 )
 
@@ -25,7 +27,7 @@ func __validTTL(ttl ...time.Duration) uint32 {
 }
 
 func (tx *TX)Set(prefix []byte, key []byte, val []byte, ttl ...time.Duration) error{
-	return tx.txn.Put(string(prefix), key, val, __validTTL(ttl...))
+	return tx.txn.Put(string(prefix), key, snappy.Encode(nil, val), __validTTL(ttl...))
 }
 
 func (tx *TX)Get(prefix []byte, key []byte, del ...bool) ([]byte, uint64, error){
@@ -43,7 +45,12 @@ func (tx *TX)Get(prefix []byte, key []byte, del ...bool) ([]byte, uint64, error)
 		}
 	}
 
-	return e.Value, e.Meta.Timestamp + uint64(e.Meta.TTL), nil
+	v, err := snappy.Decode(nil, e.Value)
+	if err != nil {
+		return nil, 0, fmt.Errorf("decode data failed: %s", err)
+	}
+
+	return v, e.Meta.Timestamp + uint64(e.Meta.TTL), nil
 }
 
 func (tx *TX)Del(prefix []byte, key []byte) (error){
@@ -59,7 +66,13 @@ func (tx *TX)Iterate(prefix []byte, fn func(idx int, key []byte, val []byte, exp
 	}
 	
 	for i, e := range es {
-		err = fn(i, e.Key, e.Value, e.Meta.Timestamp + uint64(e.Meta.TTL))
+		v, err := snappy.Decode(nil, e.Value)
+		if err != nil {
+			return fmt.Errorf("decode data failed: %s", err)
+		}
+
+		err = fn(i, e.Key, v, e.Meta.Timestamp + uint64(e.Meta.TTL))
+
 		if err != nil {
 			return err
 		}

@@ -21,7 +21,7 @@ func newDB(cfg *cfg) (*DB, error){
 	opts := badger.DefaultOptions(cfg.Dir)
 	opts = opts.WithInMemory(cfg.InMemory)
 	opts = opts.WithLoggingLevel(badger.WARNING)
-	opts = opts.WithCompression(options.ZSTD)
+	opts = opts.WithCompression(options.Snappy)
 
 	db, err := badger.Open(opts)
 	if err != nil {
