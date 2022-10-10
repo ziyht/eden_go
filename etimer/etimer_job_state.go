@@ -89,7 +89,7 @@ func (js *JobState)LastCost()  time.Duration { return js.lastCost }
 
 func (js *JobState)LastSuccess()  time.Time { return js.lastSuccess }
 func (js *JobState)LastFailure()  time.Time { return js.lastFailure }
-func (js *JobState)LastError()    error     { return js.lastError   }
+func (js *JobState)LastError(clear ...bool) error { err := js.lastError; if len(clear) > 0 && clear[0] { js.lastError = nil }; return err}
 
 func (js *JobState)Format(s fmt.State, verb rune) {
 	switch verb {
