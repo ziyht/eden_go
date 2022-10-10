@@ -32,6 +32,7 @@ type Timer struct {
 
 func newTimer(options ...TimerOptions) *Timer {
 	t := &Timer{
+	  jobs : map[string]*Job{},
 		queue:  newPriorityQueue(),
 		status: StatusRunning,
 		ticks:  0,
@@ -97,6 +98,7 @@ func (t *Timer) AddJob(j *Job) error {
 	}
 
 	j.timer = t
+	t.jobs[j.name] = j
 	t.queue.Push(j, nextTicks)
 
 	return nil

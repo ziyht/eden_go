@@ -17,7 +17,7 @@ type Interface interface {
 	sort.Interface
 	Push(x any) // add x as element Len()
 	Pop() any   // remove and return element Len() - 1.
-	Fetch() any // return element Len() - 1.
+	Fetch() any // return element 0.
 }
 
 // Init establishes the heap invariants required by the other routines in this package.

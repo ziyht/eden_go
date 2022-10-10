@@ -1,6 +1,7 @@
 package etimer
 
 import (
+	"context"
 	"strconv"
 	"time"
 )
@@ -38,4 +39,16 @@ func NewTimer(opt ... TimerOptions)*Timer {
 
 func NewJob(opt *JobOpts)*Job {
 	return createJob(*opt)
+}
+
+func AddJob(j *Job) error {
+	return defaultTimer.AddJob(j)
+}
+
+func AddInterval(ctx context.Context, interval time.Duration, cb JobFunc, singleton ...bool) *Job {
+	return defaultTimer.AddInterval(ctx, interval, cb, singleton...)
+}
+
+func AddCron(ctx context.Context, pattern string, cb JobFunc, singleton ...bool) (*Job, error) {
+	return defaultTimer.AddCron(ctx, pattern, cb, singleton...)
 }

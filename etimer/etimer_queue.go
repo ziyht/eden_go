@@ -82,11 +82,6 @@ func (q *priorityQueue) Fetch() interface{} {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	if v := heap.Fetch(q.heap); v != nil {
-		var nextPriority int64 = math.MaxInt64
-		if len(q.heap.array) > 0 {
-			nextPriority = q.heap.array[0].priority
-		}
-		atomic.StoreInt64(&q.nextPriority, nextPriority)
 		return v.(priorityQueueItem).value
 	}
 	return nil
@@ -127,12 +122,12 @@ func (h *priorityQueueHeap) Pop() interface{} {
 	return item
 }
 
-// Pop retrieves, removes and returns the most high priority item from the heap.
+// Fetch returns the most high priority item from the heap.
 func (h *priorityQueueHeap) Fetch() interface{} {
 	length := len(h.array)
 	if length == 0 {
 		return nil
 	}
-	item := h.array[length-1]
+	item := h.array[0]
 	return item
 }

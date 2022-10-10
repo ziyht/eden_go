@@ -1,6 +1,7 @@
 package etimer
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -10,9 +11,10 @@ import (
 
 func TestInterval(t *testing.T) {
 
-	tm := NewTimer(TimerOptions{Interval: time.Second/1000})
+	tm  := NewTimer(TimerOptions{Interval: time.Second/1000})
+	ctx := context.Background() 
 	cnt := 0
-	j := tm.AddInterval(nil, time.Second/10, func(j *Job)error{
+	j := tm.AddInterval(ctx, time.Second/10, func(j *Job)error{
 		fmt.Printf("running at %s\n", j.State())
 		cnt += 1
 		return nil
@@ -45,9 +47,10 @@ func TestLimit(t *testing.T) {
 
 func TestCron(t *testing.T) {
 
-	tm := NewTimer()
+	tm  := NewTimer()
+	ctx := context.Background() 
 
-	j, _ := tm.AddCron(nil, "* * * * *", func(j *Job)error{
+	j, _ := tm.AddCron(ctx, "* * * * *", func(j *Job)error{
 		fmt.Printf("running at %s\n", j.State())
 		return nil
 	})
@@ -59,12 +62,19 @@ func TestCron(t *testing.T) {
 func TestCron2(t *testing.T) {
 
 	tm := NewTimer(TimerOptions{Interval: time.Second/100})
+	ctx := context.Background() 
 
-	j, _ := tm.AddCron(nil, "@every 2s", func(j *Job)error{
-		fmt.Printf("running at %s\n", j.State())
+	j1, _ := tm.AddCron(ctx, "@every 2s", func(j *Job)error{
+		fmt.Printf("job1\n")
+		return nil
+	})
+
+	j2, _ := tm.AddCron(ctx, "@every 1s", func(j *Job)error{
+		fmt.Printf("job2\n")
 		return nil
 	})
 
 	time.Sleep(time.Second * 10)
-	fmt.Printf("%+v\n", j.State())
+	fmt.Printf("%+v\n", j1.State())
+	fmt.Printf("%+v\n", j2.State())
 }
