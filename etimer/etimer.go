@@ -13,7 +13,6 @@ const (
 	StatusClosed                           = -1                   // Job or Timer is closed and waiting to be deleted.
 	panicExit                internalPanic = "exit"               // panicExit is used for custom job exit with panic.
 	defaultTimerInterval                   = "100"                // defaultTimerInterval is the default timer interval in milliseconds.
-	commandEnvKeyForInterval               = "gf.gtimer.interval" // commandEnvKeyForInterval is the key for command argument or environment configuring default interval duration for timer.
 )
 
 var (
@@ -35,4 +34,8 @@ func DefaultOptions() TimerOptions {
 
 func NewTimer(opt ... TimerOptions)*Timer {
 	return newTimer(opt...)
+}
+
+func NewJob(opt *JobOpts)*Job {
+	return createJob(*opt)
 }

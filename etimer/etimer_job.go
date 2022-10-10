@@ -2,105 +2,85 @@ package etimer
 
 import (
 	"context"
-	"sync/atomic"
+	"strings"
+	"time"
+
+	uuid "github.com/satori/go.uuid"
 )
 
 type Job struct {
 	name        string
 	cb          JobFunc
 	ctx         context.Context
-	ticks       int64           // The job runs every tick.
-	nextTicks   int64           // Next run ticks of the job.
-	times       int64           // Limit running times.
-	leftTimes   int64           // Left running times, init by times
-	singleton   int32
-	state       JobState
+
+	sched       schedule
+	js          JobState
 
 	timer       *Timer
 }
 
 // JobFunc is the timing called job function in timer.
-type JobFunc = func(ctx context.Context) error
+type JobFunc = func(job *Job) error
 
-func (j *Job) Run() {
-	if j.times >= 0 {
-		leftRunTimes := atomic.AddInt64(&j.leftTimes, -1)
-		if leftRunTimes < 0 {
-			j.state.setStatus(StatusClosed)
-			return
-		}
-	}
-
-	go func() {
-		defer func() {
-			if exception := recover(); exception != nil {
-				if exception != panicExit {
-					if v, ok := exception.(error); ok && gerror.HasStack(v) {
-						panic(v)
-					} else {
-						panic(gerror.Newf(`exception recovered: %+v`, exception))
-					}
-				} else {
-					j.Close()
-					return
-				}
-			}
-			if j.Status() == StatusRunning {
-				j.state.setStatus(StatusReady)
-			}
-		}()
-		j.cb(j.ctx)
-	}()
+type JobOpts struct {
+	Name        string             // the name of the job, if not set, it will be replaced with internal generated uuid
+	Ctx         context.Context    // context, to pass in needed parameters for the job
+	Interval    time.Duration      // interval for job to run
+	Pattern     string             // cron pattern to run job, has high priority than Interval
+	CB          JobFunc            // callback function of job
+	IsSingleton bool               // set singleton
+	Times       int64              // set limit running times
+	status      int32
 }
 
-// doCheckAndRunByTicks checks the if job can run in given timer ticks,
-// it runs asynchronously if the given `currentTimerTicks` meets or else
-// it increments its ticks and waits for next running check.
-func (j *Job) doCheckAndRunByTicks(currentTimerTicks int64) {
-	// Ticks check.
-	if currentTimerTicks < atomic.LoadInt64(&j.nextTicks) {
-		return
+// createJob creates and adds a timing job to the timer.
+func createJob(in JobOpts) (*Job) {
+	j := &Job{
+		name:        in.Name,
+		cb:          in.CB,
+		ctx:         in.Ctx,
 	}
-	atomic.StoreInt64(&j.nextTicks, currentTimerTicks + j.ticks)
-	// Perform job checking.
-	switch j.state.Status() {
-	  case StatusRunning: if j.IsSingleton() { return }
-	  case StatusReady  : if !atomic.CompareAndSwapInt32(&j.state.status, StatusReady, StatusRunning){ return }
-	  case StatusStopped: return
-	  case StatusClosed : return
-	}
-	// Perform job running.
-	j.Run()
-}
 
-func (j *Job) Status()int{
-	return j.state.Status()
+	if j.name == "" {
+		j.name = uuid.NewV1().String()
+	}
+
+	j.js.name = j.name
+	j.js.pattern = strings.TrimSpace(in.Pattern)
+	j.js.setStatus(in.status)
+	j.js.setInterval(in.Interval)
+	j.js.setSingleton(in.IsSingleton)
+	if in.Times > 0 {
+		j.js.setTimes(in.Times)
+	}
+
+	if j.js.pattern != "" {
+		j.js.setInterval(time.Second)
+	}
+
+	return j
 }
 
 // Start starts the job.
 func (j *Job) Start() {
-	j.state.setStatus(StatusReady)
+	j.js.setStatus(StatusReady)
 }
 
 // Stop stops the job.
 func (j *Job) Stop() {
-	j.state.setStatus(StatusStopped)
+	j.js.setStatus(StatusStopped)
 }
 
 func (j *Job) Close(){
-	j.state.setStatus(StatusClosed)
+	j.js.setStatus(StatusClosed)
 }
 
 func (j *Job) IsSingleton() bool {
-	return atomic.LoadInt32(&j.singleton) > 0
+	return j.js.IsSingleton()
 }
 
 func (j *Job) SetSingleton(enable bool) {
-	if enable {
-		atomic.StoreInt32(&j.singleton, 1)
-	} else {
-		atomic.StoreInt32(&j.singleton, 0)
-	}
+	j.js.setSingleton(enable)
 }
 
 func (j *Job) Ctx() context.Context {
@@ -108,10 +88,9 @@ func (j *Job) Ctx() context.Context {
 }
 
 func (j *Job) SetTimes(times int64) {
-	atomic.StoreInt64(&j.times, times)
-	atomic.StoreInt64(&j.leftTimes, times)
+	j.js.setTimes(times)
 }
 
 func (j *Job) State() *JobState {
-	return &j.state
+	return &j.js
 }
