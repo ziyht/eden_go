@@ -147,7 +147,7 @@ func sourceRows(rows []string, frame Frame, before, after int, colorized bool) [
 		}
 		rows = append(rows, message)
 	}
-	return append(rows)
+	return rows
 }
 
 func sprint(err error, nums []int, colorized bool) string {
