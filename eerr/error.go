@@ -18,6 +18,7 @@ var DefaultCap = 20
 type Error interface {
 	Error()      string
 	StackTrace() []Frame
+	StaskCause() Frame
 	Unwrap()     error
 	Id()         uint64      // a hash value caculated by file, line number and error string 
 }
