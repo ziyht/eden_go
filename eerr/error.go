@@ -7,6 +7,8 @@ package eerr
 import (
 	"fmt"
 	"runtime"
+
+	"github.com/cespare/xxhash/v2"
 )
 
 // DefaultCap is a default cap for frames array.
@@ -84,6 +86,21 @@ func StackTrace(err error) []Frame {
 func HasStack(err error) bool {
 	_, ok := err.(Error)
 	return ok
+}
+
+// a hash value caculated by file, line number and error string
+// if not a err, only using the error string
+func Id(err error) uint64 {
+	if err == nil {
+		return 0
+	}
+
+	e, ok := err.(Error)
+	if ok {
+		return e.Id()
+	}
+
+	return xxhash.Sum64String(err.Error())
 }
 
 func StackCause(err error)(f Frame, ok bool){
