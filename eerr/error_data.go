@@ -20,6 +20,14 @@ func (e *errorData) StackTrace() []Frame {
 }
 
 // Unwrap returns the original error.
+func (e *errorData) StaskCause() (out Frame) {
+	if len(e.frames) > 0 {
+		return e.frames[0]
+	}
+	return
+}
+
+// Unwrap returns the original error.
 func (e *errorData) Unwrap() error {
 	return e.err
 }
