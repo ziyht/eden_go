@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/ztrue/tracerr"
 )
 
@@ -319,4 +320,13 @@ func TestUnwrap(t *testing.T) {
 
 func wrapError(err error) error {
 	return tracerr.Wrap(err)
+}
+
+func TestId(t *testing.T) {
+	id1 := Newf("test").Id(); id2 := Newf("test").Id(); id3 := Newf("test2").Id();
+	id4 := Newf("test").Id()
+
+	assert.Equal(t, id1, id2)
+	assert.NotEqual(t, id1, id3)
+	assert.NotEqual(t, id1, id4)
 }

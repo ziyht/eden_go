@@ -16,16 +16,10 @@ var DefaultCap = 20
 
 // Error is an error with stack trace.
 type Error interface {
-	Error() string
+	Error()      string
 	StackTrace() []Frame
-	Unwrap() error
-}
-
-type errorData struct {
-	// err contains original error.
-	err error
-	// frames contains stack trace of an error.
-	frames []Frame
+	Unwrap()     error
+	Id()         uint64      // a hash value caculated by file, line number and error string 
 }
 
 // CustomError creates an error with provided frames.
@@ -76,31 +70,6 @@ func Unwrap(err error) error {
 	return e.Unwrap()
 }
 
-// Error returns error message.
-func (e *errorData) Error() string {
-	return e.err.Error()
-}
-
-// StackTrace returns stack trace of an error.
-func (e *errorData) StackTrace() []Frame {
-	return e.frames
-}
-
-// Unwrap returns the original error.
-func (e *errorData) Unwrap() error {
-	return e.err
-}
-
-// Frame is a single step in stack trace.
-type Frame struct {
-	// Func contains a function name.
-	Func string
-	// Line contains a line number.
-	Line int
-	// Path contains a file path.
-	Path string
-}
-
 // StackTrace returns stack trace of an error.
 // It will be empty if err is not of type Error.
 func StackTrace(err error) []Frame {
@@ -129,11 +98,6 @@ func StackCause(err error)(f Frame, ok bool){
 	return e.frames[0], true
 }
 
-// String formats Frame to string.
-func (f Frame) String() string {
-	return fmt.Sprintf("%s:%d %s()", f.Path, f.Line, f.Func)
-}
-
 func trace(err error, skip int) Error {
 	pc := make([]uintptr, DefaultCap)
 	cnt := runtime.Callers(skip+1, pc)
@@ -156,7 +120,7 @@ func trace(err error, skip int) Error {
 		if !ok {
 			break
 		}
-	} 
+	}
 
 	return &errorData{
 		err:    err,
