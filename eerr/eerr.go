@@ -20,7 +20,7 @@ type Error interface {
 	Error()      string
 	StackTrace() []Frame
 	StaskCause() Frame
-	Unwrap()     error
+	Unpack()     error
 	Id()         uint64      // a hash value caculated by file, line number and error string 
 }
 
@@ -35,13 +35,26 @@ func Newf(message string, args ...interface{}) Error {
 	return &errorData{fmt.Errorf(message, args...), Trace(2)}
 }
 
+// NewSkipf is the same as Errorf
+// The parameter `skip` specifies the stack callers skipped amount.
+func NewSkipf(skip int, message string, args ...interface{}) Error {
+	return &errorData{fmt.Errorf(message, args...), Trace(skip+2)}
+}
+
 // New creates new error with stacktrace.
 func New(message string) Error {
 	return &errorData{fmt.Errorf(message), Trace(2)}
 }
 
-// Wrap adds stacktrace to existing error.
-func Wrap(err error) Error {
+// New creates new error with stacktrace.
+// The parameter `skip` specifies the stack callers skipped amount.
+func NewSkip(skip int, message string) Error {
+	return &errorData{fmt.Errorf(message), Trace(skip+2)}
+}
+
+// Pack adds stacktrace to existing error. 
+// Note: it takes no effect for eerr.Error
+func Pack(err error) Error {
 	if err == nil {
 		return nil
 	}
@@ -52,8 +65,22 @@ func Wrap(err error) Error {
 	return &errorData{err, Trace(2)}
 }
 
-// Unwrap returns the original error.
-func Unwrap(err error) error {
+// PackSkip adds stacktrace to existing error.
+// The parameter `skip` specifies the stack callers skipped amount.
+// Note: it takes no effect for eerr.Error
+func PackSkip(skip int, err error) Error {
+	if err == nil {
+		return nil
+	}
+	e, ok := err.(Error)
+	if ok {
+		return e
+	}
+	return &errorData{err, Trace(skip+2)}
+}
+
+// Unpack returns the original error.
+func Unpack(err error) error {
 	if err == nil {
 		return nil
 	}
@@ -61,7 +88,7 @@ func Unwrap(err error) error {
 	if !ok {
 		return err
 	}
-	return e.Unwrap()
+	return e.Unpack()
 }
 
 // StackTrace returns stack trace of an error.
