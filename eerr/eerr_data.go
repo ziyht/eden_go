@@ -25,7 +25,7 @@ func (e *errorData) StaskCause() Frame {
 }
 
 // Unwrap returns the original error.
-func (e *errorData) Unwrap() error {
+func (e *errorData) Unpack() error {
 	return e.err
 }
 
