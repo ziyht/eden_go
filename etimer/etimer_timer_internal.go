@@ -80,6 +80,11 @@ func (t *Timer) proceed(curTimerTicks int64, curTime time.Time) {
 	}
 }
 
+func (t *Timer) submitJob(j *Job) {
+
+
+}
+
 func (t *Timer) runJob(j *Job) {
 	go func() {
 		start := time.Now()

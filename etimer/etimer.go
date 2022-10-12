@@ -11,6 +11,7 @@ const (
 	StatusReady                            = 0                    // Job or Timer is ready for running.
 	StatusRunning                          = 1                    // Job or Timer is already running.
 	StatusStopped                          = 2                    // Job or Timer is stopped.
+	StatusPending                          = 3                    // Job is pending for parallel limits.
 	StatusClosed                           = -1                   // Job or Timer is closed and waiting to be deleted.
 	panicExit                internalPanic = "exit"               // panicExit is used for custom job exit with panic.
 	defaultTimerInterval                   = "100"                // defaultTimerInterval is the default timer interval in milliseconds.

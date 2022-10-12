@@ -34,6 +34,7 @@ func (s *scheduleCron) doCheckTicksAndTime(curTimerTicks int64, curTime time.Tim
 	// Perform job checking.
 	switch s.js.Status() {
 	  case StatusRunning: if s.js.IsSingleton() { return false }
+		case StatusPending: if s.js.IsSingleton() { return false }
 	  case StatusReady  : if !s.js.setStatusCas(StatusReady, StatusRunning) { return false }
 	  case StatusStopped: return false
 	  case StatusClosed : return false

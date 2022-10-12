@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+
+
 type JobState struct {
 	mu          sync.Mutex
 
@@ -31,6 +33,8 @@ type JobState struct {
 	lastSuccess time.Time      // 上一次成功的时间
 	lastFailure time.Time      // 上一次失败的时间
 	lastError   error          // 上一次失败的错误信息
+
+	errs        *errInfos
 }
 
 func (js *JobState)setStatus(s int32) { atomic.StoreInt32(&js.status, s) }
@@ -55,7 +59,7 @@ func (js *JobState)addRunning(start time.Time) {
 	js.lastStart = start
 }
 
-func (js *JobState)addRunningOver(start, end time.Time, err  error) {
+func (js *JobState)addRunningOver(start, end time.Time, err error) {
 	js.lastStart = start
 	js.lastEnd   = end
 	js.lastCost  = end.Sub(start)
@@ -66,8 +70,17 @@ func (js *JobState)addRunningOver(start, end time.Time, err  error) {
 	} else {
 		atomic.AddUint64(&js.failures, 1)
 		js.lastFailure = end
-		js.lastError = err
 	}
+}
+
+func (js *JobState)recordError(err error, t ...time.Time) {
+	if len(t) > 0 {
+		js.errs.setError(err, t[0])
+	} else {
+		js.errs.setError(err, time.Now())
+	}
+
+	js.lastError = err
 }
 
 func (js *JobState)Name() string { return js.name }
@@ -90,6 +103,8 @@ func (js *JobState)LastCost()  time.Duration { return js.lastCost }
 func (js *JobState)LastSuccess()  time.Time { return js.lastSuccess }
 func (js *JobState)LastFailure()  time.Time { return js.lastFailure }
 func (js *JobState)LastError(clear ...bool) error { err := js.lastError; if len(clear) > 0 && clear[0] { js.lastError = nil }; return err}
+
+func (js *JobState)Errors() []*errInfo { return js.errs.Errs() }
 
 func (js *JobState)Format(s fmt.State, verb rune) {
 	switch verb {

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	uuid "github.com/satori/go.uuid"
+	"github.com/ziyht/eden_go/eerr"
 )
 
 type Job struct {
@@ -45,6 +46,7 @@ func createJob(in JobOpts) (*Job) {
 		j.name = uuid.NewV1().String()
 	}
 
+	j.js.errs = newErrInfos()
 	j.js.name = j.name
 	j.js.pattern = strings.TrimSpace(in.Pattern)
 	j.js.setStatus(in.status)
@@ -59,6 +61,16 @@ func createJob(in JobOpts) (*Job) {
 	}
 
 	return j
+}
+
+// Errorf - format a err and record it to the JobState
+func (j *Job) Errorf(message string, args ...interface{}) {
+	j.js.recordError(eerr.NewSkipf(1, message, args...))
+}
+
+// RecordError - record the err to the JobState
+func (j *Job) RecordError(err error) {
+	j.js.recordError(eerr.PackSkip(1, err))
 }
 
 // Start starts the job.
