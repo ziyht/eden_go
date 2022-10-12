@@ -107,7 +107,7 @@ func readLines(path string) ([]string, error) {
 }
 
 func sourceRows(rows []string, frame Frame, before, after int, colorized bool) []string {
-	lines, err := readLines(frame.Path)
+	lines, err := readLines(frame.file)
 	if err != nil {
 		message := err.Error()
 		if colorized {
@@ -115,17 +115,17 @@ func sourceRows(rows []string, frame Frame, before, after int, colorized bool) [
 		}
 		return append(rows, message)
 	}
-	if len(lines) < frame.Line {
+	if len(lines) < frame.line {
 		message := fmt.Sprintf(
 			"tracerr: too few lines, got %d, want %d",
-			len(lines), frame.Line,
+			len(lines), frame.line,
 		)
 		if colorized {
 			message = aurora.Yellow(message).String()
 		}
 		return append(rows, message)
 	}
-	current := frame.Line - 1
+	current := frame.line - 1
 	start := current - before
 	end := current + after
 	for i := start; i <= end; i++ {
@@ -135,7 +135,7 @@ func sourceRows(rows []string, frame Frame, before, after int, colorized bool) [
 		line := lines[i]
 		var message string
 		// TODO Pad to the same length.
-		if i == frame.Line-1 {
+		if i == frame.line - 1 {
 			message = fmt.Sprintf("%d\t%s", i+1, string(line))
 			if colorized {
 				message = aurora.Red(message).String()

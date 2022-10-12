@@ -6,7 +6,6 @@ package eerr
 
 import (
 	"fmt"
-	"runtime"
 
 	"github.com/cespare/xxhash/v2"
 )
@@ -25,28 +24,20 @@ type Error interface {
 	Id()         uint64      // a hash value caculated by file, line number and error string 
 }
 
-// CustomError creates an error with provided frames.
-func CustomError(err error, frames []Frame) Error {
-	return &errorData{
-		err:    err,
-		frames: frames,
-	}
-}
-
 // Errorf creates new error with stacktrace and formatted message.
 // Formatting works the same way as in fmt.Errorf.
 func Errorf(message string, args ...interface{}) Error {
-	return trace(fmt.Errorf(message, args...), 2)
+	return &errorData{fmt.Errorf(message, args...), Trace(2)}
 }
 
 // Newf is the same as Errorf
 func Newf(message string, args ...interface{}) Error {
-	return trace(fmt.Errorf(message, args...), 2)
+	return &errorData{fmt.Errorf(message, args...), Trace(2)}
 }
 
 // New creates new error with stacktrace.
 func New(message string) Error {
-	return trace(fmt.Errorf(message), 2)
+	return &errorData{fmt.Errorf(message), Trace(2)}
 }
 
 // Wrap adds stacktrace to existing error.
@@ -58,7 +49,7 @@ func Wrap(err error) Error {
 	if ok {
 		return e
 	}
-	return trace(err, 2)
+	return &errorData{err, Trace(2)}
 }
 
 // Unwrap returns the original error.
@@ -109,61 +100,9 @@ func StackCause(err error)(f Frame, ok bool){
 		return
 	}
 
-	if len(e.frames)== 0 {
+	if len(e.stack)== 0 {
 		return
 	}
 
-	return e.frames[0], true
+	return e.stack.Frame(0), true
 }
-
-func trace(err error, skip int) Error {
-	pc := make([]uintptr, DefaultCap)
-	cnt := runtime.Callers(skip+1, pc)
-	if cnt == 0 {
-		return &errorData{
-			err:    err,
-		}
-	}
-
-	frames := make([]Frame, 0, cnt)
-	fs := runtime.CallersFrames(pc)
-	for ;; {
-		f, ok := fs.Next()
-		frame := Frame{
-			Func: f.Func.Name(),
-			Line: f.Line,
-			Path: f.File,
-		}
-		frames = append(frames, frame)
-		if !ok {
-			break
-		}
-	}
-
-	return &errorData{
-		err:    err,
-		frames: frames,
-	}
-}
-
-// func trace2(err error, skip int) Error {
-// 	frames := make([]Frame, 0, DefaultCap)
-// 	for {
-// 		pc, path, line, ok := runtime.Caller(skip)
-// 		if !ok {
-// 			break
-// 		}
-// 		fn := runtime.FuncForPC(pc)
-// 		frame := Frame{
-// 			Func: fn.Name(),
-// 			Line: line,
-// 			Path: path,
-// 		}
-// 		frames = append(frames, frame)
-// 		skip++
-// 	}
-// 	return &errorData{
-// 		err:    err,
-// 		frames: frames,
-// 	}
-// }

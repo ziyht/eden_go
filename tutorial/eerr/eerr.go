@@ -18,5 +18,8 @@ func main() {
 
 	f, _ := eerr.StackCause(err)
 	fmt.Println(f.String())
+
+	f = eerr.Call(0)
+	fmt.Println(f.String())
 }
 

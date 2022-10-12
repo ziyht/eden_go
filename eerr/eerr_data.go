@@ -6,7 +6,7 @@ type errorData struct {
 	// err contains original error.
 	err error
 	// frames contains stack trace of an error.
-	frames []Frame
+	stack stack
 }
 
 // Error returns error message.
@@ -16,15 +16,12 @@ func (e *errorData) Error() string {
 
 // StackTrace returns stack trace of an error.
 func (e *errorData) StackTrace() []Frame {
-	return e.frames
+	return e.stack.Frames()
 }
 
 // Unwrap returns the original error.
-func (e *errorData) StaskCause() (out Frame) {
-	if len(e.frames) > 0 {
-		return e.frames[0]
-	}
-	return
+func (e *errorData) StaskCause() Frame {
+	return e.stack.Frame(0)
 }
 
 // Unwrap returns the original error.
@@ -37,9 +34,10 @@ func (e *errorData) Unwrap() error {
 func (e *errorData) Id() uint64 {
 	h := xxhash.New()
 
-	if len(e.frames) > 0 {
-		h.WriteString(e.frames[0].Path)
-		line := int32(e.frames[0].Line)
+	if len(e.stack) > 0 {
+		f := e.stack.Frame(0)
+		h.WriteString(f.file)
+		line := int32(f.line)
 		h.Write([]byte{0, byte(line), byte(line>>8), byte(line>>16), byte(line>>24), 0})  // 0 is a gap between file and number and left content
 	}
 
