@@ -20,9 +20,9 @@ type DB struct {
 func newDB(cfg *cfg) (*DB, error){
 
 	opts := nutsdb.DefaultOptions
-	opts.RWMode     = nutsdb.MMap
-	opts.Dir        = cfg.Dir
-	opts.SyncEnable = false
+	opts.RWMode      = nutsdb.MMap
+	opts.Dir         = cfg.Dir
+	opts.SyncEnable  = false
 	
 	db, err := nutsdb.Open(opts)
 	if err != nil {

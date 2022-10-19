@@ -1,12 +1,27 @@
 package ecache
 
 import (
+	"fmt"
+	"strings"
+
 	_ "github.com/ziyht/eden_go/ecache/driver/drivers/badgerdb"
 	_ "github.com/ziyht/eden_go/ecache/driver/drivers/nutsdb"
 )
 
-func NewDBCache(dsn string) (c *DBCache, err error) {
-	db, err := newDB(dsn)
+const (
+	BADGER = "badger"
+	NUTSDB = "nutsdb"
+)
+
+type DBOpts struct {
+	Dsn     string   // if set, the other proporty will take no effect, format: <dirvername>:<dir>[?<arg1=val1>[&<arg2=val2>]...]
+	Driver  string   // if not set will using nutsdb in default
+	Dir     string   
+  Params  map[string][]string
+}
+
+func NewDBCache(opts DBOpts) (c *DBCache, err error) {
+	db, err := newDB(&opts)
 	if err != nil {
 		return nil, err
 	}
@@ -14,6 +29,29 @@ func NewDBCache(dsn string) (c *DBCache, err error) {
 	c = newDBCache(db)
 
 	return
+}
+
+func GenDsn(driver, dir string, params ...map[string][]string) string {
+	dsn := NUTSDB
+	if len(driver) > 0 {
+		dsn = driver
+	}
+	dsn = dsn + ":" + dir
+	var args []string
+	for _, p := range params {
+		for k, vs := range p {
+			for _, v := range vs {
+				args = append(args, fmt.Sprintf("%s=%s", k, v))
+			}
+		}
+	}
+
+	if len(args) > 0 {
+		dsn += "?"
+		dsn += strings.Join(args, "&")
+	}
+
+	return dsn
 }
 
 func NewMemCache[T any](opts ...MemCacheOpts[T]) (*MemCache[T]) {
@@ -24,7 +62,16 @@ func NewMemCache[T any](opts ...MemCacheOpts[T]) (*MemCache[T]) {
 	return newMemCache(MemCacheOpts[T]{})
 }
 
-func NewTypedItemRegion[T Item](r* Region)(*ItemRegion[T]){
+func MakeTypedItemRegion[T Item](r* Region)(*ItemRegion[T]){
+	return newItemRegion[T](r.db, r.meta.keys)
+}
+
+func NewTypedItemRegion[T Item](r* Region, keys ...string)(*ItemRegion[T]){
+	if len(keys) == 0 {
+		return MakeTypedItemRegion[T](r)
+	}
+
+	r = r.SubRegion(keys...)
 	return newItemRegion[T](r.db, r.meta.keys)
 }
 
@@ -46,7 +93,7 @@ func GetDBCacheFromFile(path string, key string)(c *DBCache, err error){
 		return nil, err
 	}
 
-	return NewDBCache(cfg.Dsn)
+	return NewDBCache(DBOpts{Dsn: cfg.Dsn} )
 }
 
 func GetDBCache(name ...string)(c *DBCache, err error){

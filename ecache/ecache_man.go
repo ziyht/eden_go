@@ -37,7 +37,7 @@ func initFromFile(path string) error {
 		}
 
 		if fdcfg != nil && fdcfg.Dsn != cfg.Dsn {
-			log.Warnf("the old DSN '%s' from file '%s' overwriten by new DSN '%s' from file '%s' for key '%s'", fdcfg.Dsn, fdcfg.file, cfg.Dsn, cfg.file, name)
+			log.Warnf("the old DSN '%s' from file '%s' overwriten by new DSN '%s' from file '%s' for key '%s'", fdcfg.Dsn, fdcfg.cfgFile, cfg.Dsn, cfg.cfgFile, name)
 		}
 
 		dbCacheCfgs[name] = cfg
@@ -47,7 +47,7 @@ func initFromFile(path string) error {
 
 func getDfDBcache() (*DBCache, error) {
 	if dfDbCache == nil {
-		tmp, err := NewDBCache(dfCfg().Dsn)
+		tmp, err := NewDBCache(DBOpts{Dsn: dfCfg().Dsn} )
 		if err != nil {
 			return nil, err
 		}
@@ -71,7 +71,7 @@ func getDBCache(name string)(*DBCache, error){
 		return c, nil
 	}
 
-	c, err := NewDBCache(cfg.Dsn)
+	c, err := NewDBCache(DBOpts{Dsn: dfCfg().Dsn} )
 	if err != nil {
 		return nil, fmt.Errorf("NewDBCache for '%s' failed: %s, dsn is: %s", name, err, cfg.Dsn)
 	}

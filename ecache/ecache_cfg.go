@@ -8,8 +8,11 @@ import (
 )
 
 type Cfg struct {
-	Dsn  string             // <driver>:<path>[?arg1=val1[&...]]
-	file string
+	Dsn     string   // if set, the other proporty will take no effect, format: <dirvername>:<dir>[?<arg1=val1>[&<arg2=val2>]...]
+	Driver  string   // if not set will using nutsdb in default
+	Dir     string   
+  Params  map[string][]string
+	cfgFile string
 }
 
 type Cfgs struct {
@@ -17,7 +20,7 @@ type Cfgs struct {
 }
 
 func dfCfg() *Cfg {
-	return &Cfg{Dsn: "badger:./cache/ecache/df/badger"}
+	return &Cfg{Dsn: "nutsdb:./cache/ecache/df/nutsdb"}
 }
 
 func cfgsFromFile(path string, key string)(Cfgs, error){
@@ -36,7 +39,11 @@ func cfgsFromFile(path string, key string)(Cfgs, error){
 	}
 
 	for _, cfg := range out.Cfgs{
-		cfg.file = path
+		if cfg.Dsn == "" {
+			cfg.Dsn = GenDsn(cfg.Driver, cfg.Dir, cfg.Params)
+		}
+
+		cfg.cfgFile = path
 	}
 
 	return out, nil

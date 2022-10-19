@@ -84,7 +84,7 @@ func (m *rMeta)genSubMeta(keys []string)	rMeta{
 	o := &rMeta{keys: keys}
 	o.pkeys = append(o.pkeys, m.pkeys...)
 	o.pkeys = append(o.pkeys, m.keys)
-	o.ipre = m.catSubForKeyPre(__r_pre, __r_gap, __r_pos, __sk_gap, m.ipre, keys)
+	o.rpre = m.catSubForKeyPre(__r_pre, __r_gap, __r_pos, __sk_gap, m.rpre, keys)
 	o.ipre = m.catSubForKeyPre(__i_pre, __i_gap, __i_pos, __sk_gap, m.ipre, keys)
 	o.kpre = m.catSubForKeyPre(__k_pre, __k_gap, __k_pos, __sk_gap, m.kpre, keys)
 	o.kpreLen = len(o.kpre)

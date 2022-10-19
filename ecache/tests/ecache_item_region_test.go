@@ -54,7 +54,7 @@ func (i *myItem)Equal(i2 *myItem) bool {
 }
 
 func TestItemRegionAll(t *testing.T){
-	//ExecTestItemRegionDsn(t, "badger:test_data/badger")
+	ExecTestItemRegionDsn(t, "badger:test_data/badger")
 	ExecTestItemRegionDsn(t, "nutsdb:test_data/nutsdb")
 }
 
@@ -66,7 +66,7 @@ func ExecTestItemRegionDsn(t *testing.T, dsn string){
 }
 
 func ExecTestL1_Basic(t *testing.T, dsn string){
-	c, err := ecache.NewDBCache(dsn)
+	c, err := ecache.NewDBCache(ecache.DBOpts{Dsn: dsn} )
 	assert.Equal(t, nil, err)
 
 	inputs := []*myItem{
@@ -155,7 +155,7 @@ func ExecTestL1_Basic(t *testing.T, dsn string){
 }
 
 func ExecTestL1_MakeTypedRegion(t *testing.T, dsn string){
-	c, err := ecache.NewDBCache(dsn)
+	c, err := ecache.NewDBCache(ecache.DBOpts{Dsn: dsn} )
 	assert.Equal(t, nil, err)
 
 	inputs := []*myItem{
@@ -164,9 +164,9 @@ func ExecTestL1_MakeTypedRegion(t *testing.T, dsn string){
 		{Name:"name3", Tel:"33333333333", TTL_: time.Second*3},
 	}
 
-	l10 := ecache.NewTypedItemRegion[*myItem](c.NewRegion(""))  ; l10.SetDefaultTTL(time.Second*2)
-	l11 := ecache.NewTypedItemRegion[*myItem](c.NewRegion("l1")); l11.SetDefaultTTL(time.Second*2)
-	l12 := ecache.NewTypedItemRegion[*myItem](c.NewRegion("l2")); l12.SetDefaultTTL(time.Second*3)
+	l10 := ecache.MakeTypedItemRegion[*myItem](c.NewRegion(""))  ; l10.SetDefaultTTL(time.Second*2)
+	l11 := ecache.MakeTypedItemRegion[*myItem](c.NewRegion("l1")); l11.SetDefaultTTL(time.Second*2)
+	l12 := ecache.MakeTypedItemRegion[*myItem](c.NewRegion("l2")); l12.SetDefaultTTL(time.Second*3)
 
 	for _, i := range inputs {
 	  l10.Set(i.Name, i, i.TTL_)
@@ -233,7 +233,7 @@ func ExecTestL1_MakeTypedRegion(t *testing.T, dsn string){
 }
 
 func ExecTestL1_GetFromMem(t *testing.T, dsn string){
-	c, err := ecache.NewDBCache(dsn)
+	c, err := ecache.NewDBCache(ecache.DBOpts{Dsn: dsn} )
 	assert.Equal(t, nil, err)
 
 	inputs := []*myItem{
@@ -242,9 +242,9 @@ func ExecTestL1_GetFromMem(t *testing.T, dsn string){
 		{Name:"name3", Tel:"33333333333", TTL_: time.Second*3},
 	}
 
-	l10 := ecache.NewTypedItemRegion[*myItem](c.NewRegion(""))  ; l10.SetDefaultTTL(time.Second*2)
-	l11 := ecache.NewTypedItemRegion[*myItem](c.NewRegion("l1")); l11.SetDefaultTTL(time.Second*2)
-	l12 := ecache.NewTypedItemRegion[*myItem](c.NewRegion("l2")); l12.SetDefaultTTL(time.Second*3)
+	l10 := ecache.MakeTypedItemRegion[*myItem](c.NewRegion(""))  ; l10.SetDefaultTTL(time.Second*2)
+	l11 := ecache.MakeTypedItemRegion[*myItem](c.NewRegion("l1")); l11.SetDefaultTTL(time.Second*2)
+	l12 := ecache.MakeTypedItemRegion[*myItem](c.NewRegion("l2")); l12.SetDefaultTTL(time.Second*3)
 
 	l10.EnableMemCache(10, time.Second * 3)
 	l11.EnableMemCache(10, time.Second * 3)
@@ -319,7 +319,7 @@ func ExecTestL1_GetFromMem(t *testing.T, dsn string){
 }
 
 func ExecTestL1_GetFromMemAfterReopen(t *testing.T, dsn string){
-	c, err := ecache.NewDBCache(dsn)
+	c, err := ecache.NewDBCache(ecache.DBOpts{Dsn: dsn} )
 	assert.Equal(t, nil, err)
 
 	inputs := []*myItem{
@@ -328,7 +328,7 @@ func ExecTestL1_GetFromMemAfterReopen(t *testing.T, dsn string){
 		{Name:"name3", Tel:"33333333333", TTL_: time.Second*3},
 	}
 
-	l10 := ecache.NewTypedItemRegion[*myItem](c.NewRegion(""))  ; l10.SetDefaultTTL(time.Second*2)
+	l10 := ecache.MakeTypedItemRegion[*myItem](c.NewRegion(""))  ; l10.SetDefaultTTL(time.Second*2)
 
 	for _, i := range inputs {
 	  l10.Set(i.Name, i)
@@ -336,9 +336,9 @@ func ExecTestL1_GetFromMemAfterReopen(t *testing.T, dsn string){
 
 	err = c.Close()
 	assert.Equal(t, nil, err)
-	c, err = ecache.NewDBCache(dsn)
+	c, err = ecache.NewDBCache(ecache.DBOpts{Dsn: dsn} )
 	assert.Equal(t, nil, err)
-	l10 = ecache.NewTypedItemRegion[*myItem](c.NewRegion(""))  ; l10.SetDefaultTTL(time.Second*2)
+	l10 = ecache.MakeTypedItemRegion[*myItem](c.NewRegion(""))  ; l10.SetDefaultTTL(time.Second*2)
 	l10.EnableMemCache(10, time.Second * 2)
 	for _, i := range inputs {
 		get, err := l10.Get(i.Name, newMyItem2)

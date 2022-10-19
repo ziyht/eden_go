@@ -13,17 +13,21 @@ type db struct {
 	db  driver.DB
 }
 
-func newDB(dsn string) (*db, error) {
-	db_, err := driver.OpenDsn(dsn)
+func newDB(opts *DBOpts) (*db, error) {
+	if opts.Dsn == "" {
+		opts.Dsn = GenDsn(opts.Driver, opts.Dir, opts.Params)
+	}
+
+	db_, err := driver.OpenDsn(opts.Dsn)
 	if err != nil {
 		return nil, err
 	}
 
 	if db_ == nil {
-		return nil, fmt.Errorf("invalid returned db(nil) checked from current driver in dsn(%s)", dsn)
+		return nil, fmt.Errorf("invalid returned db(nil) checked from current driver in dsn(%s)", opts.Dsn)
 	}
 
-	return &db{dsn: dsn, db: db_}, nil
+	return &db{dsn: opts.Dsn, db: db_}, nil
 }
 
 func (db *db)setVal(pre []byte, key []byte, val Val, ttl ...time.Duration)error{

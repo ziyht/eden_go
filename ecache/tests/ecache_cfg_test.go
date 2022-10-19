@@ -34,3 +34,12 @@ func TestCfgBasic(t *testing.T) {
 	assert.NotNil(t, c3)
 	assert.NoError(t, c3.Close())
 }
+
+func TestOptsBasic(t *testing.T){
+	c1, e1 := ecache.NewDBCache(ecache.DBOpts{Dir: "./test_data/cache5"})
+	c2, e2 := ecache.NewDBCache(ecache.DBOpts{Dir: "./test_data/cache6", Driver: ecache.BADGER})
+	assert.NoError(t, e1)
+	assert.NoError(t, e2)
+	assert.NotNil(t, c1)
+	assert.NotNil(t, c2)
+}
