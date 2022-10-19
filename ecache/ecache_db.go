@@ -51,6 +51,7 @@ func (db *db)setAny(pre []byte, key any, val any, ttl ...time.Duration) error {
 		return err
 	}
 
+	defer recycleVal(raw)
 	return db.db.Update(func(tx driver.TX)error{
 		return tx.Set(pre, k, raw.marshal(), ttl...)
 	})
@@ -87,10 +88,11 @@ func (db *db)sets(prefix []byte, keys [][]byte, vals [][]byte, ttls ... time.Dur
 	for i := 0; i < lk;  {
 		if err := db.db.Update(func(tx driver.TX)error{
 			cnt := 0
+			var val Val;
 			for ; i < lk && cnt < 1000; i++ {
 
 				bin := _val_getter(vals, i)
-				var val Val; val.setBytes(bin)
+				 val.setBytes(bin)
 				if err := tx.Set(prefix, keys[i], val.marshal(), _ttl_getter(ttls, i)...); err != nil {
 					return err
 				}
@@ -266,6 +268,7 @@ func (db *db)setObjs(prefix []byte, objs []any, fn func(int, any)(key []byte, va
 				if err != nil {
 					return err
 				}
+				recycleVal(val)
 				cnt += 1
 			}
 			return nil

@@ -2,6 +2,7 @@ package ecache
 
 import (
 	"fmt"
+	"sync"
 	"time"
 	"unsafe"
 
@@ -53,6 +54,18 @@ var (
   }
 )
 
+var valPool = sync.Pool{
+  New: func() interface{} { return new(Val) },
+}
+
+func newVal() *Val {
+  return valPool.Get().(*Val)
+}
+
+func recycleVal(v *Val) {
+  valPool.Put(v)
+}
+
 type Val struct {
   meta   [4]byte
   d      []byte
@@ -73,8 +86,10 @@ func (d *Val)marshal()[]byte{
 
 // note: string type will be considered as []byte
 func NewVal(d any) (out *Val, err error){
-  out = new(Val)
-  out.Reset(d)
+  out = newVal()
+  if out.Reset(d) != nil {
+    recycleVal(out)
+  }
   return 
 }
 
