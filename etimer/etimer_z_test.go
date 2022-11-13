@@ -14,7 +14,7 @@ func TestInterval(t *testing.T) {
 	tm  := NewTimer(TimerOptions{Interval: time.Second/1000})
 	ctx := context.Background() 
 	cnt := 0
-	j := tm.AddInterval(ctx, time.Second/10, func(j *Job)error{
+	j := tm.AddInterval(ctx, time.Second/100, func(j *Job)error{
 		fmt.Printf("running at %s\n", j.State())
 		cnt += 1
 		return nil

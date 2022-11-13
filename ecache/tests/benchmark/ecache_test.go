@@ -2,11 +2,13 @@ package tests
 
 import (
 	"fmt"
+	"runtime"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/ziyht/eden_go/ecache"
+	"github.com/ziyht/eden_go/etimer"
 	"github.com/ziyht/eden_go/utils/ptr"
 )
 
@@ -20,6 +22,39 @@ func TestAll(t *testing.T){
 
 	ExecTestForDsn(t, "badger:test_data/badger")
 	ExecTestForDsn(t, "nutsdb:test_data/nutsdb")
+}
+
+func printCurAlloc(t *testing.T) {
+  var stat runtime.MemStats
+	runtime.ReadMemStats(&stat)
+	
+	t.Logf("cur alloc: %d", stat.Alloc / 1024 / 1024)
+}
+
+func TestBadger(t *testing.T){
+	for i := 0; i < 512; i++ {
+		val512 = append(val512, byte(i % 10))
+	}
+
+	etimer.AddInterval(nil, time.Second/10, func(j *etimer.Job)error {
+		printCurAlloc(t)
+		return nil
+	})
+
+	ExecInsert(t, "badger:test_data/badger", 5000000)
+}
+
+func TestNutsDB(t *testing.T){
+	for i := 0; i < 512; i++ {
+		val512 = append(val512, byte(i % 10))
+	}
+
+	etimer.AddInterval(nil, time.Second/10, func(j *etimer.Job)error {
+		printCurAlloc(t)
+		return nil
+	})
+
+	ExecInsert(t, "badger:test_data/nutsdb", 5000000)
 }
 
 func ExecTestForDsn(t *testing.T, dsn string){

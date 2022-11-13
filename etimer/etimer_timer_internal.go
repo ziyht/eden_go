@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"sync/atomic"
 	"time"
-
-	"github.com/ziyht/eden_go/eerr"
 )
 
 func statusString(s int32) string {
@@ -69,7 +67,7 @@ func (t *Timer) proceed(curTimerTicks int64, curTime time.Time) {
 		t.queue.Pop()
 		// It checks the job running requirements and then does asynchronous running.
 		if j.sched.doCheckTicksAndTime(curTimerTicks, curTime){
-			t.runJob(j)
+			t.submitJob(j)
 		}
 		
 		// Status check: push back or ignore it.
@@ -81,43 +79,9 @@ func (t *Timer) proceed(curTimerTicks int64, curTime time.Time) {
 }
 
 func (t *Timer) submitJob(j *Job) {
-
-
+	dfRunner.run(j)
 }
 
 func (t *Timer) runJob(j *Job) {
-	go func() {
-		start := time.Now()
-
-		j.js.addRunning(start)
-
-		defer func() {
-			end   := time.Now()
-			if exception := recover(); exception != nil {
-				if exception != panicExit {
-					if e, ok := exception.(error); ok && eerr.HasStack(e) {
-					  j.js.addRunningOver(start, end, e)
-						panic(e)
-						
-					} else {
-						e := eerr.Newf(`exception recovered: %+v`, exception)
-						j.js.addRunningOver(start, end, e)
-						panic(e)
-					}
-				} else {
-					j.Close()
-					j.js.addRunningOver(start, end, nil)
-					return
-				}
-			}
-			if j.js.Status() == StatusRunning {
-				j.js.setStatus(StatusReady)
-			}
-		}()
-
-		j.js.setStart(start)
-		err   := j.cb(j)
-		end   := time.Now()
-		j.js.addRunningOver(start, end, err)
-	}()
+	go j.exec_once()
 }

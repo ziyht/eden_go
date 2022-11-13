@@ -106,3 +106,38 @@ func (j *Job) SetTimes(times int64) {
 func (j *Job) State() *JobState {
 	return &j.js
 }
+
+func (j *Job) exec_once() {
+	start := time.Now()
+
+	j.js.addRunning(start)
+
+	defer func() {
+		end   := time.Now()
+		if exception := recover(); exception != nil {
+			if exception != panicExit {
+				if e, ok := exception.(error); ok && eerr.HasStack(e) {
+					j.js.addRunningOver(start, end, e)
+					panic(e)
+					
+				} else {
+					e := eerr.Newf(`exception recovered: %+v`, exception)
+					j.js.addRunningOver(start, end, e)
+					panic(e)
+				}
+			} else {
+				j.Close()
+				j.js.addRunningOver(start, end, nil)
+				return
+			}
+		}
+		if j.js.Status() == StatusRunning {
+			j.js.setStatus(StatusReady)
+		}
+	}()
+
+	j.js.setStart(start)
+	err   := j.cb(j)
+	end   := time.Now()
+	j.js.addRunningOver(start, end, err)
+}
