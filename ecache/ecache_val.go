@@ -7,7 +7,7 @@ import (
 	"unsafe"
 
 	"github.com/cockroachdb/errors"
-	"github.com/ziyht/eden_go/utils/ptr"
+	"github.com/ziyht/eden_go/eutils/ptr"
 )
 
 type ValType byte

@@ -4,10 +4,8 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"sync/atomic"
 	"time"
 
-	"github.com/robfig/cron/v3"
 	"github.com/satori/go.uuid"
 )
 
@@ -28,14 +26,16 @@ type Timer struct {
 	status  int32          // status is the current timer status.
 	ticks   int64          // ticks is the proceeded interval number by the timer.
 	options TimerOptions   // timer options is used for timer configuration.
+	groups  map[string]*runner
 }
 
 func newTimer(options ...TimerOptions) *Timer {
 	t := &Timer{
-	  jobs : map[string]*Job{},
-		queue:  newPriorityQueue(),
+	  jobs  : map[string]*Job{},
+		queue :  newPriorityQueue(),
 		status: StatusRunning,
-		ticks:  0,
+		ticks :  0,
+		groups:  map[string]*runner{},
 	}
 	if len(options) > 0 {
 		t.options = options[0]
@@ -46,7 +46,25 @@ func newTimer(options ...TimerOptions) *Timer {
 	return t
 }
 
-func (t *Timer) AddJob(j *Job) error {
+// SetGroup - set a running group in timer
+// 1. a group is a handle to limit the max runings jobs in the same time, 
+//    each job can be set to a seperate group
+// 2. a timer can have several groups
+// 3. a group will be created with the name if it not exist, or it will be update by @param max for 
+func (t *Timer) SetGroup(name string, max int) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	g := t.groups[name]
+	if g == nil {
+		g := newRunner(name, max)
+		t.groups[name] = g
+	} else {
+		g.updateMax(max)
+	}
+}
+
+func (t *Timer) AddJob(j *Job, group ...string) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	j.js.mu.Lock()
@@ -61,45 +79,24 @@ func (t *Timer) AddJob(j *Job) error {
 		return fmt.Errorf("job '%s' already exists", j.name)
 	}
 
-	interval := j.js.Interval()
-	if j.js.pattern != "" {
-		interval = time.Second
-	}
-
-	intervalTicksOfJob := int64(interval / t.options.Interval)
-	if intervalTicksOfJob == 0 {
-		// If the given interval is lesser than the one of the wheel,
-		// then sets it to one tick, which means it will be run in one interval.
-		intervalTicksOfJob = 1
-	}
-	nextTicks := atomic.LoadInt64(&t.ticks) + intervalTicksOfJob
-
-	if j.js.pattern != "" {
-		s, err := cron.ParseStandard(j.js.pattern)
-		if err != nil {
-			return err
+	if len(group) > 0 {
+		g := t.groups[group[0]]
+		if g == nil {
+			return fmt.Errorf("group named '%s' not exist", group[0])
 		}
-		j.sched = &scheduleCron{
-			scheduleBasic: scheduleBasic{
-				timer     : t,
-				ticks     : intervalTicksOfJob,
-				nextTicks_: nextTicks,
-				js        : &j.js,
-			},
-			specSched: s,
-		}
+		j.js.runner = g
 	} else {
-		j.sched = &scheduleBasic{
-			timer     : t,
-			ticks     : intervalTicksOfJob,
-			nextTicks_: nextTicks,
-			js        : &j.js,
-		}
+		j.js.runner = dfRunner
+	}
+
+	err := t.parsingScheduleForJob(j)
+	if err != nil {
+		return fmt.Errorf("parsing schedule failed: %s", err)
 	}
 
 	j.timer = t
 	t.jobs[j.name] = j
-	t.queue.Push(j, nextTicks)
+	t.queue.Push(j, j.sched.nextTicks())
 
 	return nil
 }
@@ -112,7 +109,7 @@ func (t *Timer) AddInterval(ctx context.Context, interval time.Duration, cb JobF
 		CB         : cb,
 		IsSingleton: _getSingleton(singleton...),
 		Times      : -1,
-		status     : StatusReady,
+		status     : StatusWaiting,
 	})
 	t.AddJob(j)
 	return j
@@ -126,7 +123,7 @@ func (t *Timer) AddCron(ctx context.Context, pattern string, cb JobFunc, singlet
 		CB         : cb,
 		IsSingleton: _getSingleton(singleton...),
 		Times      : -1,
-		status     : StatusReady,
+		status     : StatusWaiting,
 	})
 	err := t.AddJob(j)
 	return j, err

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/ziyht/eden_go/ecache/driver"
-	"github.com/ziyht/eden_go/utils/ptr"
+	"github.com/ziyht/eden_go/eutils/ptr"
 )
 
 type db struct {

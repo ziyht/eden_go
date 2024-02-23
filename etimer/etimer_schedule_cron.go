@@ -1,7 +1,6 @@
 package etimer
 
 import (
-	"sync/atomic"
 	"time"
 
 	"github.com/robfig/cron/v3"
@@ -12,44 +11,33 @@ type scheduleCron struct {
 	specSched      cron.Schedule
 }
 
-func (s *scheduleCron) doCheckTicksAndTime(curTimerTicks int64, curTime time.Time) bool {
-	needRun := false
-
-	if curTime.After(s.js.nextStart){
-		s.js.nextStart = s.specSched.Next(curTime)
-		needRun = true
+// only returns value when reach == true
+func (s *scheduleCron) calNextTicksAndStart(curTimerTicks int64, curTime time.Time)(reach bool, nextTicks int64, nextStart time.Time){
+	// time check.
+	if curTime.Before(s.js.nextStart){
+		return
 	}
-	ticks := int64(s.js.nextStart.Sub(curTime) / s.timer.options.Interval)
+
+	nextStart = s.specSched.Next(curTime)
+	ticks := int64(nextStart.Sub(curTime) / s.timer.options.Interval)
 	if ticks <= 0 {
 		ticks = 1
 	} else if ticks > s.ticks {
 		ticks = s.ticks
 	}
-	atomic.StoreInt64(&s.nextTicks_, curTimerTicks + int64(ticks))
 
-	if !needRun {
-		return false
+	return true, curTimerTicks + ticks, nextStart
+}
+
+func (s *scheduleCron) doCheckTicksAndTime(curTimerTicks int64, curTime time.Time) bool {
+	reach, nt, ns := s.calNextTicksAndStart(curTimerTicks, curTime)
+
+	if reach {
+		s.commitNextTicks(nt)
+		s.commitNextStart(ns)
 	}
-	
-	// Perform job checking.
-	switch s.js.Status() {
-	  case StatusRunning: if s.js.IsSingleton() { return false }
-		case StatusPending: if s.js.IsSingleton() { return false }
-	  case StatusReady  : if !s.js.setStatusCas(StatusReady, StatusRunning) { return false }
-	  case StatusStopped: return false
-	  case StatusClosed : return false
-	}	
 
-	if s.js.times > 0 {
-		leftRunTimes := atomic.AddInt64(&s.js.leftTimes, -1)
-		if leftRunTimes < 0 {
-			s.js.setStatus(StatusStopped)
-			return false
-		}
-	}
-	return true
-
-
+	return reach
 }
 
 

@@ -8,20 +8,20 @@ import (
 	"time"
 )
 
-
-
 type JobState struct {
 	mu          sync.Mutex
+	runner      *runner
 
 	name        string         // the name of the job 
+	run_pend    uint64
 
 	status      int32
+	singleton   int32
 	interval    time.Duration
 	pattern     string
 	times       int64          // Limit running times.
 	leftTimes   int64          // Left running times, init by times
-	singleton   int32
-
+	
 	runnings    uint64         // 运行的次数
 	failures    uint64         // 失败次数
 	successs    uint64         // 成功次数
@@ -40,7 +40,6 @@ type JobState struct {
 func (js *JobState)setStatus(s int32) { atomic.StoreInt32(&js.status, s) }
 func (js *JobState)setInterval(du time.Duration) { js.interval = du }
 func (js *JobState)setStatusCas(s1, s2 int32) bool { return atomic.CompareAndSwapInt32(&js.status, s1, s2) }
-func (js *JobState)setStart(t time.Time) { js.lastStart = t }
 func (js *JobState)setSingleton(enable bool) {
 	if enable {
 		atomic.StoreInt32(&js.singleton, 1)
@@ -54,9 +53,56 @@ func (js *JobState)setTimes(times int64) {
 		atomic.StoreInt64(&js.leftTimes, times)
 	}
 }
+func (js *JobState)getPendRun()(int32, int32){
+	val := atomic.LoadUint64(&js.run_pend)
+	return int32(val >> 32), int32(val)
+}
+func (js *JobState)addPendRun(p, r int32) (int32, int32) {
+	var pending, running int32
+
+	for {
+		val := atomic.LoadUint64(&js.run_pend)
+		pending = int32(val >> 32)
+		running = int32(val)
+
+		if p == 0 && r == 0 {
+			break
+		}
+
+		pending += p
+		running += r
+		
+		new_val := uint64(pending) << 32 | uint64(running)
+
+		if atomic.CompareAndSwapUint64(&js.run_pend, val, new_val) {
+			break
+		}
+	}
+	
+	return pending, running
+}
 func (js *JobState)addRunning(start time.Time) {
 	atomic.AddUint64(&js.runnings, 1)
 	js.lastStart = start
+}
+
+func (js *JobState)checkLimit(cnt int)bool{
+	if js.times <= 0 {
+		return false
+	}
+
+	left := atomic.AddInt64(&js.leftTimes, int64(cnt))
+	if left > 0 {
+		return false
+	}
+
+	if left == 0 {
+		js.setStatus(StatusStopped)
+		return false
+	}
+
+	js.setStatus(StatusStopped)
+	return true
 }
 
 func (js *JobState)addRunningOver(start, end time.Time, err error) {
@@ -83,16 +129,18 @@ func (js *JobState)recordError(err error, t ...time.Time) {
 	js.lastError = err
 }
 
-func (js *JobState)Name() string { return js.name }
-func (js *JobState)Interval() time.Duration { return js.interval }
-func (js *JobState)Status() int { return int(atomic.LoadInt32(&js.status)) }
-func (js *JobState)Runnings() uint64 { return atomic.LoadUint64(&js.runnings) }
-func (js *JobState)Failures() uint64 { return atomic.LoadUint64(&js.failures) }
-func (js *JobState)Successs() uint64 { return atomic.LoadUint64(&js.successs) }
 
-func (js *JobState)Times() int64 { return atomic.LoadInt64(&js.times) }  // return limit times of job
-func (js *JobState)LeftTimes() int64 { return atomic.LoadInt64(&js.leftTimes) }
-func (js *JobState)IsSingleton() bool { return atomic.LoadInt32(&js.singleton) > 0 }
+func (js *JobState)Name()      string { return js.name }
+func (js *JobState)Interval()  time.Duration { return js.interval }
+func (js *JobState)Status()    int    { return int(atomic.LoadInt32(&js.status)) }
+func (js *JobState)StatusStr() string { return statusString(atomic.LoadInt32(&js.status)) }
+func (js *JobState)Runnings()  uint64 { return atomic.LoadUint64(&js.runnings) }
+func (js *JobState)Failures()  uint64 { return atomic.LoadUint64(&js.failures) }
+func (js *JobState)Successs()  uint64 { return atomic.LoadUint64(&js.successs) }
+
+func (js *JobState)Times()       int64 { return atomic.LoadInt64(&js.times) }  // return limit times of job
+func (js *JobState)LeftTimes()   int64 { return atomic.LoadInt64(&js.leftTimes) }
+func (js *JobState)IsSingleton() bool  { return atomic.LoadInt32(&js.singleton) > 0 }
 
 func (js *JobState)NextStart() time.Time { return js.nextStart }
 

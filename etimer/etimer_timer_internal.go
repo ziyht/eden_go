@@ -2,20 +2,94 @@ package etimer
 
 import (
 	"fmt"
+	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/robfig/cron/v3"
+	"github.com/ziyht/eden_go/eerr"
 )
 
 func statusString(s int32) string {
 
 	switch s {
-		case StatusReady  : return "StatusReady"
-		case StatusRunning: return "StatusRunning"
-		case StatusStopped: return "StatusStopped"
-		case StatusClosed : return "StatusClosed"
+		case StatusWaiting: return "Waiting"
+		case StatusRunning: return "Running"
+		case StatusPending: return "Pending"
+		case StatusStopped: return "Stopped"
+		case StatusClosed : return "Closed"
 	}
 
 	return fmt.Sprintf("StatusUnknown(%d)", s)
+}
+
+func (t *Timer) parsingScheduleForJob(j *Job) error {
+	intervalTicksOfJob := int64(j.js.Interval() / t.options.Interval)
+	if intervalTicksOfJob == 0 {
+		// If the given interval is lesser than the one of the wheel,
+		// then sets it to one tick, which means it will be run in one interval.
+		intervalTicksOfJob = 1
+	}
+	nextTicks := atomic.LoadInt64(&t.ticks) + intervalTicksOfJob
+
+	if j.js.pattern == "" {
+		j.sched = &scheduleBasic{
+			timer     : t,
+			ticks     : intervalTicksOfJob,
+			nextTicks_: nextTicks,
+			js        : &j.js,
+		}
+		return nil
+	}
+
+	var validPs []string 
+	ps := strings.Split(j.js.pattern, ",")
+	for _, p := range ps {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		validPs = append(validPs, p)
+	}
+
+	if len(validPs) == 0 {
+		return eerr.Newf("invalid pattern(%s), can not find any valid pattern", j.js.pattern)
+	}
+
+	var sched schedule
+	var sg *scheduleGroup
+
+	for _, vp := range validPs {
+		s, err := cron.ParseStandard(vp)
+		if err != nil {
+			return err
+		}
+
+		sched = &scheduleCron{
+			scheduleBasic: scheduleBasic{
+				timer     : t,
+				ticks     : intervalTicksOfJob,
+				nextTicks_: nextTicks,
+				js        : &j.js,
+			},
+			specSched: s,
+		}
+
+		if len(validPs) == 1 {
+			break
+		} else if sg == nil {
+			sg = &scheduleGroup{
+				queue: newPriorityQueue(),
+			}
+		}
+
+		sg.queue.Push(sched, sched.nextTicks())
+		sched = sg
+	}
+
+	j.sched = sched 
+
+	return nil
 }
 
 // loop starts the ticker using a standalone goroutine.
@@ -67,7 +141,15 @@ func (t *Timer) proceed(curTimerTicks int64, curTime time.Time) {
 		t.queue.Pop()
 		// It checks the job running requirements and then does asynchronous running.
 		if j.sched.doCheckTicksAndTime(curTimerTicks, curTime){
-			t.submitJob(j)
+
+			// Perform job checking.
+			switch j.js.Status() {
+				case StatusStopped: return 
+				case StatusClosed : return 
+				default:
+					fmt.Printf("submit '%s'\n", j.name)
+					t.submitJob(j)
+			}
 		}
 		
 		// Status check: push back or ignore it.
@@ -79,9 +161,5 @@ func (t *Timer) proceed(curTimerTicks int64, curTime time.Time) {
 }
 
 func (t *Timer) submitJob(j *Job) {
-	dfRunner.run(j)
-}
-
-func (t *Timer) runJob(j *Job) {
-	go j.exec_once()
+	dfRunner.submit(j)
 }

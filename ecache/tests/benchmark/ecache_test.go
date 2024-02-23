@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/ziyht/eden_go/ecache"
 	"github.com/ziyht/eden_go/etimer"
-	"github.com/ziyht/eden_go/utils/ptr"
+	"github.com/ziyht/eden_go/eutils/ptr"
 )
 
 //var nilVal []byte = nil

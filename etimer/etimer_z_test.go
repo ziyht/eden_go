@@ -25,6 +25,48 @@ func TestInterval(t *testing.T) {
 	fmt.Printf("%+v\n", j.State())
 }
 
+func TestGroup(t *testing.T){
+
+	tm  := NewTimer(TimerOptions{Interval: time.Second / 10})
+	//tm.SetGroup("g1", 3)
+	j1 := NewJob(&JobOpts{
+	  Name: "job1",
+	  Interval: time.Second * 1,
+	  CB: func(j *Job)error{
+		fmt.Printf("job1 %s\n", j.State())
+		time.Sleep(time.Second)
+		fmt.Printf("job1 over\n")
+		return nil
+	}})
+	j2 := NewJob(&JobOpts{
+		Name: "job2",
+	  Interval: time.Second * 1,
+	  CB: func(j *Job)error{
+		fmt.Printf("job2 %s\n", j.State())
+		time.Sleep(time.Second)
+		fmt.Printf("job2 over\n")
+		return nil
+	}})
+	j3 := NewJob(&JobOpts{
+		Name: "job3",
+	  Interval: time.Second * 1,
+	  CB: func(j *Job)error{
+		fmt.Printf("job3 %s\n", j.State())
+		time.Sleep(time.Second)
+		fmt.Printf("job3 over\n")
+		return nil
+	}})
+
+	tm.AddJob(j1)
+	tm.AddJob(j2)
+	tm.AddJob(j3)	
+
+	time.Sleep(time.Second * 10)
+	fmt.Printf("job1: %+v\n", j1.State())
+	fmt.Printf("job2: %+v\n", j2.State())
+	fmt.Printf("job3: %+v\n", j3.State())
+}
+
 func TestLimit(t *testing.T) {
 
 	tm := NewTimer(TimerOptions{Interval: time.Second/1000})

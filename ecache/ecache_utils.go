@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ziyht/eden_go/utils/ptr"
+	"github.com/ziyht/eden_go/eutils/ptr"
 )
 
 func toBytesKey(key any)([]byte, error){
