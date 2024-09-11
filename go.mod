@@ -3,6 +3,7 @@ module github.com/ziyht/eden_go
 go 1.18
 
 require (
+	github.com/antlabs/gstl v0.0.8
 	github.com/cockroachdb/pebble v0.0.0-20220323190648-7ad3551b2050
 	github.com/dgraph-io/badger/v3 v3.2103.2
 	github.com/emirpasic/gods v1.18.1
@@ -11,7 +12,6 @@ require (
 	github.com/satori/go.uuid v1.2.0
 	github.com/spf13/viper v1.3.2
 	github.com/xujiajun/nutsdb v0.10.0
-	github.com/zhangyunhao116/fastrand v0.3.0
 	go.uber.org/zap v1.21.0
 )
 
@@ -65,7 +65,7 @@ require (
 	go.opencensus.io v0.22.5 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
-	golang.org/x/exp v0.0.0-20220325121720-054d8573a5d8
+	golang.org/x/exp v0.0.0-20220328175248-053ad81199eb
 	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2 // indirect
 	golang.org/x/sys v0.0.0-20220405210540-1e041c57c461 // indirect
 	golang.org/x/text v0.3.8-0.20211105212822-18b340fc7af2 // indirect
