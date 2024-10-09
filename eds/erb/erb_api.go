@@ -8,7 +8,7 @@ import (
 const (
 	RED   = 0
 	BLACK = 1
-	VER   = "1.0.0"
+	VER   = "1.0.1"
 )
 
 // ERB is a struct of red-black tree.
@@ -31,8 +31,8 @@ func (t *ERB[K, V])Add(key K, val V) bool {
 		parent = *link
 		if key == parent.key {
 			return false
-		} else if key < parent.key { link = &parent.left
-		} else                     { link = &parent.right
+		} else if key > parent.key { link = &parent.right
+		} else                     { link = &parent.left
 		}
 	}
 
@@ -56,8 +56,8 @@ func (t *ERB[K, V])Set(key K, val V)(prev V, replaced bool) {
 			prev = parent.Val
 			parent.Val = val
 			return prev, true
-		} else if key < parent.key { link = &parent.left
-		} else                     { link = &parent.right
+		} else if key > parent.key { link = &parent.right
+		} else                     { link = &parent.left
 		}
 	}
 
@@ -143,12 +143,114 @@ func (t *ERB[K, V]) Del(key K) (bool) {
 	return n != nil
 }
 
+// Dels deletes nodes by keys
+func (t *ERB[K, V]) Dels(keys ...K) (cnt int64) {
+	for _, key := range keys {
+		n := t.find(key)
+		if n != nil {
+			t.erase(n)
+			cnt++
+		}
+	}
+
+	return
+}
+
 func (t *ERB[K, V]) PopFirst() *Node[K, V] {
 	n := t.First(); t.erase(n); return n
 }
 
 func (t *ERB[K, V]) PopLast() *Node[K, V] {
 	n := t.Last(); t.erase(n); return n
+}
+
+// Range calls the function `cb` for each node in the rbtree in InOrder
+func (t *ERB[K, V]) Range(cb func(K, V) bool, limit... int) {
+	if len(limit) == 0 {
+		t.root.traverseInOrder(cb)
+		return
+	}
+
+	limit_ := limit[0]
+	t.root.traverseInOrder(func(k K, v V ) bool {
+		if limit_ <= 0 {
+			return false
+		}
+
+		if !cb(k, v) {
+			return false
+		}
+
+		limit_--
+		return true
+	})
+}
+
+// RangeRev calls the function `cb` for each node in the rbtree in Reverse-InOrder
+func (t *ERB[K, V]) RangeRev(cb func(K, V) bool, limit... int) {
+	if len(limit) == 0 {
+		t.root.traverseReverseInOrder(cb)
+		return
+	}
+
+	limit_ := limit[0]
+	t.root.traverseReverseInOrder(func(k K, v V ) bool {
+		if limit_ <= 0 {
+			return false
+		}
+
+		if !cb(k, v) {
+			return false
+		}
+
+		limit_--
+		return true
+	})
+}
+
+// RangeFrom calls the function `cb` for each node in the rbtree for key in [from, to] in InOrder
+// If from > to, will reverse the order
+func (t *ERB[K, V])RangeFrom(from K, to K, cb func(K, V) bool, limit... int) {
+	if t.root == nil {
+		return
+	}
+
+	if len(limit) == 0 {
+		if from <= to {
+			t.root.traverseFromInOrder(from, to, cb)
+		} else {
+			t.root.traverseFromReverseInOrder(from, to, cb)
+		}
+		return
+	}
+
+	limit_ := limit[0]
+	if from <= to {
+		t.root.traverseFromInOrder(from, to, func(k K, v V ) bool {
+			if limit_ <= 0 {
+				return false
+			}
+
+			if !cb(k, v) {
+				return false
+			}
+
+			limit_--
+			return true
+		})
+	} else {
+		t.root.traverseFromReverseInOrder(from, to, func(k K, v V ) bool {
+			if limit_ <= 0 {
+				return false
+			}
+			if !cb(k, v) {
+				return false
+			}
+
+			limit_--	
+			return true
+		})
+	}
 }
 
 func Version() string {

@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/antlabs/gstl/rbtree"
 	"golang.org/x/exp/rand"
 )
 
@@ -66,13 +65,13 @@ func TestIsRBTree(t *testing.T) {
 	}
 
 	for i := 0; i < 10000; i++ {
-	  root.Del(i)
+		root.Del(i)
 		assert.Equal(t, true, root.isRBTree())
 	}
 	assert.Equal(t, int64(10000), root.Size())
 
 	for i := 0; i < 10000; i++ {
-	  root.Del(i)
+		root.Del(i)
 		assert.Equal(t, true, root.isRBTree())
 	}
 	assert.Equal(t, int64(0), root.Size())
@@ -117,39 +116,19 @@ func TestBasic(t *testing.T) {
 	}
 }
 
-func TestMultiInsert(t *testing.T) {
-
-	rb := New[int, int]()
-
-	assert.True (t, rb.Add(1, 1)) 
-	assert.False(t, rb.Add(1, 2))
-	assert.False(t, rb.Add(1, 3))
-
-	assert.Equal(t, int64(1), rb.Size())
-
-	rb = New[int, int]()
-	cnt := 10000
-	for i := 0; i < cnt; i ++ {
-		rb.MulAdd((i / 100) + 1, i + 1)
-	}
-	assert.Equal(t, int64(cnt), rb.Size())
-
-	iter := rb.First()
-	for i := 0; iter != nil; iter = iter.Next() {
-		assert.Equal(t, i + 1, iter.Val)
-		i++
-	}
-}
-
 func TestSet(t *testing.T) {
 
 	rb := New[int32, int]()
 
-	rb.Set(1, 1)
+	prev, ok := rb.Set(1, 1)
+	assert.Equal(t, 0, prev)
+	assert.Equal(t, false, ok)
 	assert.Equal(t, int64(1), rb.Size())
 	assert.Equal(t, 1, rb.Val(1))
 
-	rb.Set(1, 2)
+	prev, ok = rb.Set(1, 2)
+	assert.Equal(t, 1, prev)
+	assert.Equal(t, true, ok)
 	assert.Equal(t, int64(1), rb.Size())
 	assert.Equal(t, 2, rb.Val(1))
 
@@ -190,114 +169,109 @@ func TestPop(t *testing.T) {
 	assert.True(t, rb.isRBTree())
 }
 
-func TestPopKeyFirstAndLast(t *testing.T) {
+func TestRange(t *testing.T) {
 	rb := New[int, int]()
-	cnt := 100
-	for i := 0; i < cnt; i ++ {
-		rb.MulAdd((i / 10) + 1, i + 1) // 1:1, 1:2, 1:3... 10:99, 10:100
+
+	rb.Range(func(k int, v int) bool {return true})
+	rb.RangeRev(func(k int, v int) bool {return true})
+
+	for i := 0; i < 10000; i++ {
+		rb.MulAdd(i, i)
 	}
 
-	{
-	  // 0 not exist
-		node := rb.DelFirst(0)
-		assert.Equal(t, (*Node[int,int])(nil), node)
+	i := 0
+	rb.Range(func(k int, v int) bool {
+		assert.Equal(t, i, k)
+		assert.Equal(t, k, v)
+		i++
+		return true
+	})
 
-		node = rb.DelLast(0)
-		assert.Equal(t, (*Node[int,int])(nil), node)
+	i = 9999
+	rb.RangeRev(func(k int, v int) bool {
+		assert.Equal(t, i, k)
+		assert.Equal(t, k, v)
+		i--
+		return true
+	})
 
-		// 11 not exist
-		node = rb.DelFirst(11)
-		assert.Equal(t, (*Node[int,int])(nil), node)
+	i = 0
+	rb.Range(func(k int, v int) bool {
+		assert.Equal(t, i, k)
+		assert.Equal(t, k, v)
+		i++
+		return true
+	}, 1000)
+	assert.Equal(t, 1000, i)
 
-		node = rb.DelLast(11)
-		assert.Equal(t, (*Node[int,int])(nil), node)
-
-		// 1 2 3 4 5 6 7 8 9 10
-		// |
-		node = rb.DelFirst(1)
-		assert.Equal(t, 1, node.Val)
-		assert.True(t, rb.isRBTree())
-
-		// 2 3 4 5 6 7 8 9 10
-		// |
-		node = rb.DelFirst(1)
-		assert.Equal(t, 2, node.Val)
-		assert.True(t, rb.isRBTree())
-
-		// 3 4 5 6 7 8 9 10
-		//               |
-		node = rb.DelLast(1)
-		assert.Equal(t, 10, node.Val)
-		assert.True(t, rb.isRBTree())
-
-		// 3 4 5 6 7 8 9
-		//             |
-		node = rb.DelLast(1)
-		assert.Equal(t, 9, node.Val)
-		assert.True(t, rb.isRBTree())
-	}
+	i = 9999
+	rb.RangeRev(func(k int, v int) bool {
+		assert.Equal(t, i, k)
+		assert.Equal(t, k, v)
+		i--
+		return true
+	}, 1000)
+	assert.Equal(t, 8999, i)
 }
 
-func TestPopKeyFirst(t *testing.T) {
+func TestRangFrom(t *testing.T) {
+
 	rb := New[int, int]()
-	cnt := 100
-	for i := 0; i < cnt; i ++ {
-		rb.MulAdd((i / 10) + 1, i + 1)
+
+	for i := 0; i < 100; i++ {
+		rb.Add(i, i)
 	}
+	rb.Dels(10, 20)
 
-	{
-		for i := 0; i < 10; i ++ {
-			for j := 0; j < 10; j++ {
-				node := rb.DelFirst(j + 1)
-				assert.Equal(t, i + 1 + 10 * j, node.Val)
-				assert.True(t, rb.isRBTree())
-			}
-		}
+	i := 11
+	rb.RangeFrom(10, 20, func(k int, v int) bool {
+		assert.Equal(t, i, k)
+		assert.Equal(t, i, v)
+		i++
+		return true
+	})
 
-		assert.Equal(t, int64(0), rb.Size())
-		assert.True(t, rb.isRBTree())
-	}
-}
+	i = 11
+	cnt := 0
+	rb.RangeFrom(10, 20, func(k int, v int) bool {
+		assert.Equal(t, i, k)
+		assert.Equal(t, i, v)
+		i++
+		cnt++
+		return true
+	}, 5)
+	assert.Equal(t, 5, cnt)
 
-func TestPopKeyLast(t *testing.T) {
-	rb := New[int, int]()
-	cnt := 100
-	for i := 0; i < cnt; i ++ {
-		rb.MulAdd((i / 10) + 1, i + 1)
-	}
+	i = 19
+	cnt = 0
+	rb.RangeFrom(20, 10, func(k int, v int) bool {
+		assert.Equal(t, i, k)
+		assert.Equal(t, i, v)
+		i--
+		cnt++
+		return true
+	}, 5)
+	assert.Equal(t, 5, cnt)
 
-	{
-		for i := 0; i < 10; i ++ {
-			for j := 0; j < 10; j++ {
-				node := rb.DelLast(j + 1)
-				assert.Equal(t, 10 - i + 10 * j, node.Val)
-				assert.True(t, rb.isRBTree())
-			}
-		}
+	i = 30
+	cnt = 0
+	rb.RangeFrom(30, 40, func(k int, v int) bool {
+		assert.Equal(t, i, k)
+		assert.Equal(t, i, v)
+		i++
+		cnt++
+		return true
+	})
+	assert.Equal(t, 11, cnt)
 
-		assert.Equal(t, int64(0), rb.Size())
-		assert.Equal(t, (*Node[int,int])((*Node[int,int])(nil)), rb.PopLast())
-		assert.True(t, rb.isRBTree())
-	}
-}
-
-func BenchmarkAddMul(b *testing.B) {
-	rb := New[int, int]()
-	for i := 0; i < b.N; i ++ {
-		rb.MulAdd(1, i + 1)
-	}
-}
-
-func BenchmarkGSTLSet(b *testing.B) {
-	rb := rbtree.New[int, int]()
-	for i := 0; i < b.N; i ++ {
-		rb.Set(i, i + 1)
-	}
-}
-
-func BenchmarkMySet1(b *testing.B) {
-	rb := New[int, int]()
-	for i := 0; i < b.N; i ++ {
-		rb.Set(i, i + 1)
-	}
+	i = 40
+	cnt = 0
+	rb.RangeFrom(40, 30, func(k int, v int) bool {
+		assert.Equal(t, i, k)
+		assert.Equal(t, i, v)
+		i--
+		cnt++
+		return true
+	})
+	assert.Equal(t, 11, cnt)
 }

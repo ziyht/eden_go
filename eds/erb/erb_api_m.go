@@ -6,8 +6,7 @@ import (
 
 type ERBM[K cst.Ordered, V any] ERB[K, V]
 
-func (tm *ERB[K, V]) MulAdd(key K, val V) {
-	t := (*ERB[K, V])(tm)
+func (t *ERB[K, V]) MulAdd(key K, val V) {
 	link := &t.root
 	var parent *Node[K, V]
 
@@ -26,12 +25,50 @@ func (tm *ERB[K, V]) MulAdd(key K, val V) {
 	t.insert(node)
 }
 
-// Get finds the first node of key and return its value.
-func (t *ERB[K, V]) GetFirst(key K) (V, bool) {
+func (t *ERB[K, V]) SetAll(key K, val V) (cnt int64) {
+	t.root.traverseNodeFromInOrder(key, key, func (n *Node[K, V]) bool	{
+		n.Val = val
+		cnt++
+		return true
+	})
+
+	return
+}
+
+func (t *ERB[K, V]) ValFirst(key K, df ...V) (ret V) {
 	n := t.findFirst(key)
 	if n == nil {
-		var result V
-		return result, false
+		if len(df) > 0 { return df[0] }
+		return 
+	}
+
+	return n.Val
+}
+
+func (t *ERB[K, V]) ValLast(key K, df ...V) (ret V) {
+	n := t.findLast(key)
+	if n == nil {
+		if len(df) > 0 { return df[0] }
+		return 
+	}
+
+	return n.Val
+}
+
+// GetFirst finds the first node of specific key and return it.
+func (t *ERB[K, V]) GetFirst(key K) (ret V, found bool) {
+	n := t.findFirst(key)
+	if n == nil {
+		return 
+	}
+
+	return n.Val, true
+}
+
+func (t *ERB[K, V]) GetLast(key K) (ret V, found bool) {
+	n := t.findLast(key)
+	if n == nil {
+		return 
 	}
 
 	return n.Val, true
@@ -53,15 +90,27 @@ func (t *ERB[K, V]) DelLast(key K) *Node[K, V] {
 func (t *ERB[K, V]) DelAll(key K) (int64) {
 	var cnt int64
 
-	for {
-		n := t.find(key)
-		if n == nil {
-			break
-		}
+	n := t.find(key)
+	if n == nil {
+		return cnt
+	}
 
-		t.erase(n)
+	for {
+		b := n.prevBrotherAny()
+		if b == nil { break }
+		t.erase(b)
 		cnt++
 	}
 
+	for {
+		b := n.nextBrotherAny()
+		if b == nil { break }
+		t.erase(b)
+		cnt++
+	}
+
+	t.erase(n)
+	cnt++
+	
 	return cnt
 }
