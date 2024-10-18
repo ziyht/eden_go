@@ -17,10 +17,10 @@ type nonMutex struct {
 }
 
 func (nmu *nonMutex)Lock(){}
-func (nmu *nonMutex)TryLock()bool{return false}
+func (nmu *nonMutex)TryLock()bool{return true}
 func (nmu *nonMutex)Unlock(){}
 func (nmu *nonMutex)RLock(){}
-func (nmu *nonMutex)TryRLock()bool{return false}
+func (nmu *nonMutex)TryRLock()bool{return true}
 func (nmu *nonMutex)RUnlock(){}
 
 func NewRWMutex(safe ...bool) RWMutex {
