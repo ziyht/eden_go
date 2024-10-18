@@ -1,13 +1,7 @@
-package esl_set
+package esl
 
 import (
 	"github.com/ziyht/eden_go/erand"
-)
-
-const (
-	maxLevel            = 16
-	p                   = 0.25
-	defaultHighestLevel = 3
 )
 
 func randomLevel() int {

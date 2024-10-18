@@ -3,15 +3,19 @@ module github.com/ziyht/eden_go
 go 1.18
 
 require (
+	github.com/MauriceGit/skiplist v0.0.0-20211105230623-77f5c8d3e145
 	github.com/antlabs/gstl v0.0.8
 	github.com/cockroachdb/pebble v0.0.0-20220323190648-7ad3551b2050
 	github.com/dgraph-io/badger/v3 v3.2103.2
 	github.com/emirpasic/gods v1.18.1
 	github.com/fatih/color v1.13.0
+	github.com/huandu/skiplist v1.2.1
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/satori/go.uuid v1.2.0
 	github.com/spf13/viper v1.3.2
 	github.com/xujiajun/nutsdb v0.10.0
+	github.com/zhangyunhao116/fastrand v0.5.0
+	github.com/zhangyunhao116/skipset v0.13.0
 	go.uber.org/zap v1.21.0
 )
 

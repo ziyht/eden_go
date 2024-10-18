@@ -1,4 +1,4 @@
-package esl_set
+package esl
 
 import "sync/atomic"
 
@@ -7,11 +7,11 @@ const (
 	marked
 )
 
-type bitflag struct {
+type bitFlag struct {
 	data uint32
 }
 
-func (f *bitflag) SetTrue(flags uint32) {
+func (f *bitFlag) SetTrue(flags uint32) {
 	for {
 		old := atomic.LoadUint32(&f.data)
 		if old&flags != flags {
@@ -26,7 +26,7 @@ func (f *bitflag) SetTrue(flags uint32) {
 	}
 }
 
-func (f *bitflag) SetFalse(flags uint32) {
+func (f *bitFlag) SetFalse(flags uint32) {
 	for {
 		old := atomic.LoadUint32(&f.data)
 		check := old & flags
@@ -42,10 +42,10 @@ func (f *bitflag) SetFalse(flags uint32) {
 	}
 }
 
-func (f *bitflag) Get(flag uint32) bool {
+func (f *bitFlag) Get(flag uint32) bool {
 	return (atomic.LoadUint32(&f.data) & flag) != 0
 }
 
-func (f *bitflag) MGet(check, expect uint32) bool {
+func (f *bitFlag) MGet(check, expect uint32) bool {
 	return (atomic.LoadUint32(&f.data) & check) == expect
 }
