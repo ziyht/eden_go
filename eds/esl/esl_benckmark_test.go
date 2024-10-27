@@ -1,18 +1,19 @@
 package esl
 
 import (
-	"math"
+	// "math"
 	"sync"
 	"testing"
 
+	"github.com/huandu/skiplist"
 	"github.com/zhangyunhao116/fastrand"
 	"github.com/zhangyunhao116/skipset"
-	"github.com/huandu/skiplist"
+	cst "golang.org/x/exp/constraints"
 )
 
 const (
-	initsize = 1 << 10 // for `contains` `1Remove9Add90Contains` `1Range9Remove90Add900Contains`
-	randN    = math.MaxUint32
+	// initsize = 1 << 10 // for `contains` `1Remove9Add90Contains` `1Range9Remove90Add900Contains`
+	// randN    = math.MaxUint32
 )
 
 type anyskipset[T any] interface {
@@ -34,16 +35,16 @@ func BenchmarkInt64(b *testing.B) {
 		name: "esl", New: func() anyskipset[int64] {
 			return newBenckESL[int64]()
 		}})
-	// all = append(all, benchTask[int64]{
-	// 	name: "skipset(func)", New: func() anyskipset[int64] {
-	// 		return skipset.NewFunc(func(a, b int64) bool {
-	// 			return a < b
-	// 		})
-	// 	}})
-	// all = append(all, benchTask[int64]{
-	// 	name: "sync.Map", New: func() anyskipset[int64] {
-	// 		return new(anySyncMap[int64])
-	// 	}})
+	all = append(all, benchTask[int64]{
+		name: "skipset(func)", New: func() anyskipset[int64] {
+			return skipset.NewFunc(func(a, b int64) bool {
+				return a < b
+			})
+		}})
+	all = append(all, benchTask[int64]{
+		name: "sync.Map", New: func() anyskipset[int64] {
+			return new(anySyncMap[int64])
+		}})
 	// all = append(all, benchTask[int64]{
 	// 	name: "huandu/skiplist", New: func() anyskipset[int64] {
 	// 		return newHuanduSkipListInt64[int64]()
@@ -141,12 +142,12 @@ type benchTask[T any] struct {
 }
 
 
-type benckESL[T ordered] struct {
-	*ESL[T, int]
+type benckESL[T cst.Ordered] struct {
+	*ESL[T, int64]
 }
 
-func newBenckESL[T ordered] () *benckESL[T] {
-	return &benckESL[T]{New[T, int]()}
+func newBenckESL[T cst.Ordered] () *benckESL[T] {
+	return &benckESL[T]{New[T, int64]()}
 }
 
 func (m *benckESL[T]) Add(x T) bool {
@@ -161,16 +162,16 @@ func (m *benckESL[T]) Remove(x T) bool {
 	return m.ESL.Remove(x)
 }
 
-func (m *benckESL[T]) Range(f func(value T) bool) {
-  m.ESL.Range(f)
+func (m *benckESL[T]) Range(f func(key T) bool) {
+  m.ESL.Range(func(key T, val int64)bool { return f(key)})
 }
 
 func (m *benckESL[T]) RangeFrom(start T, f func(value T) bool) {
-  m.ESL.RangeFrom(start, f)
+  m.ESL.RangeFrom(start, func(key T, val int64)bool { return f(key)})
 }
 
 func (m *benckESL[T]) Len() int {
-	return m.ESL.Len()
+	return int(m.ESL.Len())
 }
 
 //

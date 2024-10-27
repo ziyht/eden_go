@@ -4,7 +4,7 @@ import "sync/atomic"
 
 const (
 	fullyLinked = 1 << iota
-	marked
+	deleting
 )
 
 type bitFlag struct {
@@ -46,6 +46,6 @@ func (f *bitFlag) Get(flag uint32) bool {
 	return (atomic.LoadUint32(&f.data) & flag) != 0
 }
 
-func (f *bitFlag) MGet(check, expect uint32) bool {
+func (f *bitFlag) Check(check, expect uint32) bool {
 	return (atomic.LoadUint32(&f.data) & check) == expect
 }

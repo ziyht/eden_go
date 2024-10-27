@@ -7,12 +7,20 @@ import (
 
 const (
 	op1 = 4
-	op2 = maxLevel - op1
+	op2 = _MAX_LEVEL - op1
 )
 
 type opArray struct {
 	base  [op1]unsafe.Pointer
 	extra *([op2]unsafe.Pointer)
+}
+
+func (a *opArray) load0() unsafe.Pointer {
+	return a.base[0]
+}
+
+func (a *opArray) atomicLoad0() unsafe.Pointer {
+	return atomic.LoadPointer(&a.base[0])
 }
 
 func (a *opArray) load(layer int) unsafe.Pointer {
@@ -44,3 +52,4 @@ func (a *opArray) atomicStore(layer int, p unsafe.Pointer) {
 	}
 	atomic.StorePointer(&a.extra[layer-op1], p)
 }
+
