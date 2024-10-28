@@ -62,14 +62,14 @@ func TestSetAll(t *testing.T) {
 
 	cnt = rb.SetAll(0, 888)
 	assert.Equal(t, int64(10), cnt)
-	rb.RangeFrom(0, 0, func(k, v int) bool{
+	rb.RangeFromTo(0, 0, func(k, v int) bool{
 		assert.Equal(t, 0, k)
 		assert.Equal(t, 888, v)
 		return true
 	})
 
 	i := 10
-	rb.RangeFrom(1, 1, func(k, v int) bool{
+	rb.RangeFromTo(1, 1, func(k, v int) bool{
 		assert.Equal(t, 1, k)
 		assert.Equal(t, i, v)
 		i++
@@ -290,7 +290,7 @@ func TestRangFromMulti(t *testing.T) {
 
 	for i := 0; i < 1000; i++ {
 		j := 0
-		rb.RangeFrom(i, i, func(k int, v int) bool{
+		rb.RangeFromTo(i, i, func(k int, v int) bool{
 			assert.Equal(t, i, k)
 			assert.Equal(t, i*10+j, v)
 			j++

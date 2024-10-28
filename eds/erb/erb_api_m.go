@@ -26,7 +26,7 @@ func (t *ERB[K, V]) MulAdd(key K, val V) {
 }
 
 func (t *ERB[K, V]) SetAll(key K, val V) (cnt int64) {
-	t.root.traverseNodeFromInOrder(key, key, func (n *Node[K, V]) bool	{
+	t.root.traverseNodeFromToInOrder(key, key, func (n *Node[K, V]) bool	{
 		n.Val = val
 		cnt++
 		return true

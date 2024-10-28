@@ -215,6 +215,48 @@ func TestRange(t *testing.T) {
 }
 
 func TestRangFrom(t *testing.T) {
+	rb := New[int, int]()
+
+	for i := 0; i < 100; i++ {
+		rb.Add(i, i)
+	}
+	rb.Dels(10, 20)
+
+	i := 21
+	cnt := 0
+	rb.RangeFrom(20, func(k int, v int) bool {
+		assert.Equal(t, i, k)
+		assert.Equal(t, i, v)
+		i++
+		cnt++
+		return true
+	})
+	assert.Equal(t, 79, cnt)
+
+	i = 21
+	cnt = 0
+	rb.RangeFrom(20, func(k int, v int) bool {
+		assert.Equal(t, i, k)
+		assert.Equal(t, i, v)
+		i++
+		cnt++
+		return true
+	}, 5)
+	assert.Equal(t, 5, cnt)
+
+	i = 30
+	cnt = 0
+	rb.RangeFrom(30, func(k int, v int) bool {
+		assert.Equal(t, i, k)
+		assert.Equal(t, i, v)
+		i++
+		cnt++
+		return true
+	})
+	assert.Equal(t, 70, cnt)
+}
+
+func TestRangFromTo(t *testing.T) {
 
 	rb := New[int, int]()
 
@@ -224,16 +266,30 @@ func TestRangFrom(t *testing.T) {
 	rb.Dels(10, 20)
 
 	i := 11
-	rb.RangeFrom(10, 20, func(k int, v int) bool {
+	cnt := 0
+	rb.RangeFromTo(10, 20, func(k int, v int) bool {
 		assert.Equal(t, i, k)
 		assert.Equal(t, i, v)
 		i++
+		cnt++
 		return true
 	})
+	assert.Equal(t, 9, cnt)
 
 	i = 11
-	cnt := 0
-	rb.RangeFrom(10, 20, func(k int, v int) bool {
+	cnt = 0
+	rb.RangeFromTo(10, 19, func(k int, v int) bool {
+		assert.Equal(t, i, k)
+		assert.Equal(t, i, v)
+		i++
+		cnt++
+		return true
+	})
+	assert.Equal(t, 9, cnt)
+
+	i = 11
+	cnt = 0
+	rb.RangeFromTo(10, 20, func(k int, v int) bool {
 		assert.Equal(t, i, k)
 		assert.Equal(t, i, v)
 		i++
@@ -244,7 +300,7 @@ func TestRangFrom(t *testing.T) {
 
 	i = 19
 	cnt = 0
-	rb.RangeFrom(20, 10, func(k int, v int) bool {
+	rb.RangeFromTo(20, 10, func(k int, v int) bool {
 		assert.Equal(t, i, k)
 		assert.Equal(t, i, v)
 		i--
@@ -255,7 +311,7 @@ func TestRangFrom(t *testing.T) {
 
 	i = 30
 	cnt = 0
-	rb.RangeFrom(30, 40, func(k int, v int) bool {
+	rb.RangeFromTo(30, 40, func(k int, v int) bool {
 		assert.Equal(t, i, k)
 		assert.Equal(t, i, v)
 		i++
@@ -266,7 +322,7 @@ func TestRangFrom(t *testing.T) {
 
 	i = 40
 	cnt = 0
-	rb.RangeFrom(40, 30, func(k int, v int) bool {
+	rb.RangeFromTo(40, 30, func(k int, v int) bool {
 		assert.Equal(t, i, k)
 		assert.Equal(t, i, v)
 		i--
@@ -274,4 +330,80 @@ func TestRangFrom(t *testing.T) {
 		return true
 	})
 	assert.Equal(t, 11, cnt)
+}
+
+func TestRangIn(t *testing.T) {
+
+	rb := New[int, int]()
+
+	for i := 0; i < 100; i++ {
+		rb.Add(i, i)
+	}
+	rb.Dels(10, 20)
+
+	i := 11
+	cnt := 0
+	rb.RangeIn(10, 20, func(k int, v int) bool {
+		assert.Equal(t, i, k)
+		assert.Equal(t, i, v)
+		i++
+		cnt++
+		return true
+	})
+	assert.Equal(t, 9, cnt)
+
+	i = 11
+	cnt = 0
+	rb.RangeIn(10, 19, func(k int, v int) bool {
+		assert.Equal(t, i, k)
+		assert.Equal(t, i, v)
+		i++
+		cnt++
+		return true
+	})
+	assert.Equal(t, 8, cnt)
+
+	i = 11
+	cnt = 0
+	rb.RangeIn(10, 20, func(k int, v int) bool {
+		assert.Equal(t, i, k)
+		assert.Equal(t, i, v)
+		i++
+		cnt++
+		return true
+	}, 5)
+	assert.Equal(t, 5, cnt)
+
+	i = 19
+	cnt = 0
+	rb.RangeIn(20, 10, func(k int, v int) bool {
+		assert.Equal(t, i, k)
+		assert.Equal(t, i, v)
+		i--
+		cnt++
+		return true
+	}, 5)
+	assert.Equal(t, 5, cnt)
+
+	i = 30
+	cnt = 0
+	rb.RangeIn(30, 40, func(k int, v int) bool {
+		assert.Equal(t, i, k)
+		assert.Equal(t, i, v)
+		i++
+		cnt++
+		return true
+	})
+	assert.Equal(t, 10, cnt)
+
+	i = 40
+	cnt = 0
+	rb.RangeIn(40, 30, func(k int, v int) bool {
+		assert.Equal(t, i, k)
+		assert.Equal(t, i, v)
+		i--
+		cnt++
+		return true
+	})
+	assert.Equal(t, 10, cnt)
 }

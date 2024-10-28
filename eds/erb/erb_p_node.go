@@ -174,10 +174,33 @@ func (n *Node[K, V]) traverseReverseInOrder(callback func(k K, v V) bool) bool {
 	return true
 }
 
-func (n *Node[K, V]) traverseNodeFromInOrder(from K, to K, callback func(n *Node[K, V]) bool) bool {
+func (n *Node[K, V]) traverseNodeFrom_InOrder(from K, callback func(k K, v V) bool) bool {
 	if n != nil {
 		if n.key >= from {
-			if !n.left.traverseNodeFromInOrder(from, to, callback) {
+			if !n.left.traverseNodeFrom_InOrder(from, callback) {
+				return false
+			}
+		}
+
+		if n.key >= from {
+			if !callback(n.key, n.Val) {
+				return false
+			}
+		}
+
+		if !n.right.traverseNodeFrom_InOrder(from, callback) {
+			return false
+		}
+		
+	}
+
+	return true
+}
+
+func (n *Node[K, V]) traverseNodeFromToInOrder(from K, to K, callback func(n *Node[K, V]) bool) bool {
+	if n != nil {
+		if n.key >= from {
+			if !n.left.traverseNodeFromToInOrder(from, to, callback) {
 				return false
 			}
 		}
@@ -189,7 +212,7 @@ func (n *Node[K, V]) traverseNodeFromInOrder(from K, to K, callback func(n *Node
 		}
 
 		if n.key <= to {
-			if !n.right.traverseNodeFromInOrder(from, to, callback) {
+			if !n.right.traverseNodeFromToInOrder(from, to, callback) {
 				return false
 			}
 		}
@@ -198,22 +221,22 @@ func (n *Node[K, V]) traverseNodeFromInOrder(from K, to K, callback func(n *Node
 	return true
 }
 
-func (n *Node[K, V]) traverseNodeFromReverseInOrder(from K, to K, callback func(n *Node[K, V]) bool) bool {
+func (n *Node[K, V]) traverseNodeFromToReverseInOrder(to K, from K, callback func(n *Node[K, V]) bool) bool {
 	if n != nil {
 		if n.key <= from {
-			if !n.right.traverseNodeFromReverseInOrder(from, to, callback) {
+			if !n.right.traverseNodeFromToReverseInOrder(to, from, callback) {
 				return false
 			}
 		}
 
-		if n.key >= to && n.key <= from {
+		if n.key <= from && n.key >= to {
 			if !callback(n) {
 				return false
 			}
 		}
 
 		if n.key >= to {
-			if !n.left.traverseNodeFromReverseInOrder(from, to, callback) {
+			if !n.left.traverseNodeFromToReverseInOrder(to, from, callback) {
 				return false
 			}
 		}
@@ -222,14 +245,76 @@ func (n *Node[K, V]) traverseNodeFromReverseInOrder(from K, to K, callback func(
 	return true
 }
 
-func (n *Node[K, V]) traverseFromInOrder(from K, to K, callback func(k K, v V) bool) bool {
-	return n.traverseNodeFromInOrder(from, to, func(n *Node[K, V]) bool {
+func (n *Node[K, V]) traverseFromToInOrder(from K, to K, callback func(k K, v V) bool) bool {
+	return n.traverseNodeFromToInOrder(from, to, func(n *Node[K, V]) bool {
 		return callback(n.key, n.Val)
 	})
 }
 
-func (n *Node[K, V]) traverseFromReverseInOrder(from K, to K, callback func(k K, v V) bool) bool {
-	return n.traverseNodeFromReverseInOrder(from, to, func(n *Node[K, V]) bool {
+func (n *Node[K, V]) traverseFromToReverseInOrder(to K, from K, callback func(k K, v V) bool) bool {
+	return n.traverseNodeFromToReverseInOrder(to, from, func(n *Node[K, V]) bool {
+		return callback(n.key, n.Val)
+	})
+}
+
+// start <= end
+func (n *Node[K, V]) traverseNodeInInOrder(start K, end K, callback func(n *Node[K, V]) bool) bool {
+	if n != nil {
+		if n.key >= start {
+			if !n.left.traverseNodeInInOrder(start, end, callback) {
+				return false
+			}
+		}
+
+		if n.key >= start && n.key < end {
+			if !callback(n) {
+				return false
+			}
+		}
+
+		if n.key <= end {
+			if !n.right.traverseNodeInInOrder(start, end, callback) {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
+// start <= end
+func (n *Node[K, V]) traverseNodeInReverseInOrder(end K, start K, callback func(n *Node[K, V]) bool) bool {
+	if n != nil {
+		if n.key <= start {
+			if !n.right.traverseNodeInReverseInOrder(end, start, callback) {
+				return false
+			}
+		}
+
+		if n.key <= start && n.key > end{
+			if !callback(n) {
+				return false
+			}
+		}
+
+		if n.key >= end {
+			if !n.left.traverseNodeInReverseInOrder(end, start, callback) {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
+func (n *Node[K, V]) traverseInInOrder(start K, end K, callback func(k K, v V) bool) bool {
+	return n.traverseNodeInInOrder(start, end, func(n *Node[K, V]) bool {
+		return callback(n.key, n.Val)
+	})
+}
+
+func (n *Node[K, V]) traverseInReverseInOrder(end K, start K, callback func(k K, v V) bool) bool {
+	return n.traverseNodeInReverseInOrder(end, start, func(n *Node[K, V]) bool {
 		return callback(n.key, n.Val)
 	})
 }
