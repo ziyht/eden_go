@@ -4,7 +4,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/natefinch/lumberjack"
+	"gopkg.in/natefinch/lumberjack.v2"
 	"go.uber.org/zap/zapcore"
 )
 
