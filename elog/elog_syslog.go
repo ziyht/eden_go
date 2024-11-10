@@ -1,14 +1,12 @@
 package elog
 
 var (
-	syslogCfg = genSyslogCfg()
-	syslogger *Elogger
+	syslogger    *Elogger
+	
 	syslog Elog
 	syslogTag  = "ELOG"
-)
 
-func genSyslogCfg() Cfg {
-	return Cfg{
+	sysloggerCfg = Cfg{
 		Tag              : syslogTag,
 		Dir              : "logs",
 		Group            : "<APP_NAME>",
@@ -24,9 +22,9 @@ func genSyslogCfg() Cfg {
 		ConsoleColor     : ColorAuto,
 		FileColor        : ColorAuto,
 	}
-}
+)
 
 func initSyslog() {
-  syslogger = newElogger("syslog", &syslogCfg)
+  syslogger = newElogger("syslog", sysloggerCfg.Clone())
 	syslog = syslogger.getLog()
 }

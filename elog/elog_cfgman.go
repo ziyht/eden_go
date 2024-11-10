@@ -9,7 +9,7 @@ type sCfgMan struct {
 	loggerCfgs map[string]*LoggerCfg
 }
 
-var cfgMan *sCfgMan = &sCfgMan{ df: &dfCfg, loggerCfgs: make(map[string]*LoggerCfg) }
+var cfgMan *sCfgMan = &sCfgMan{ df: &dfLoggerCfg, loggerCfgs: make(map[string]*LoggerCfg) }
 
 func (cm *sCfgMan)register(name string, cfg *LoggerCfg){
 	cm.loggerCfgs[name] = cfg
@@ -26,17 +26,17 @@ func (cm *sCfgMan)parsingCfgsFromFile(file string) (cfgs map[string]*LoggerCfg) 
 	return cfgs
 }
 
-func (cm *sCfgMan)findLogCfgs(path string, new map[string]*LoggerCfg) []*LogCfg {
+func (cm *sCfgMan)findLogCfgs(path string, cache map[string]*LoggerCfg) []*LogCfg {
 
-	keys := strings.SplitAfterN(path, ".", 2)
+	keys := strings.SplitN(path, ".", 2)
 
 	if len(keys) == 0 {
 		return nil
 	}
 
 	var loggerCfg *LoggerCfg
-	if new != nil {
-		loggerCfg = new[keys[0]]
+	if cache != nil {
+		loggerCfg = cache[keys[0]]
 	}
 	if loggerCfg == nil {
 		loggerCfg = cm.loggerCfgs[keys[0]];
@@ -47,7 +47,7 @@ func (cm *sCfgMan)findLogCfgs(path string, new map[string]*LoggerCfg) []*LogCfg 
 
 	if len(keys) == 1 {
 		loggerCfg = loggerCfg.Clone()
-		return loggerCfg.logs
+		return loggerCfg.cfgs
 	}
 
 	logCfg := loggerCfg.FindLogCfg(keys[1])

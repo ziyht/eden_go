@@ -2,7 +2,6 @@ package elog
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -12,93 +11,11 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-const sampleCfg =
-`
-#
-# Tag representation for dir, group, filename
-#    <HOSTNAME> -> hostname of current machine
-#    <APP>      -> binary file name of current application
-#    <LOG>      -> the name of current logger, in default cfg, the name is 'default'
-#
-#  note: 
-#    1. the key like 'dir', 'group', ... under elog directly is to set default value,
-#       you do not need to set it because all of them have a default value inside
-#
-
-elog:
-  
-  dir        : logs                # default logs
-  group      : <HOSTNAME>          # default <HOSTNAME>, if set, real dir will be $Dir/$Group
-  filename   : <APP>_<LOG>         # default <LOG>, will not write to file if set empty, real file path will be $Dir/$Group/$File
-  console    : stdout              # default stdout, you can set stderr instead
-  max_size   : 100                 # default 100, unit MB
-  max_backup : 7                   # default 7
-  max_age    : 7                   # default 7
-  compress   : false               # default false
-  f_level    : debug               # default debug,       level for file, valid value is [debug, info, warn, error, fatal, panic]
-  f_slevel   : warn                # default warn , stack level for file, valid value is [debug, info, warn, error, fatal, panic]
-  f_color    : false               # default auto,        color for file, valid value is [auto, true, false]
-  c_level    : debug               # default info ,       level for console, valid value is [debug, info, warn, error, fatal, panic]
-  c_slevel   : warn                # default error, stack level for console, valid value is [debug, info, warn, error, fatal, panic]
-  c_color    : true                # default auto ,       color for console, valid value is [auto, true, false]
-
-  # mode 1
-  log1:
-    # filename: <APP>_<LOG>        # if not set, will inherit from default value set in elog.filename
-    tag    :  log1
-    c_level:  info
-    f_level:  debug       
-
-  # mode 2
-  log2:
-  - tag         : log2                # first no-empty tag will take effect, nexts will be skipped
-    name        : console             # not used now
-    console     : stdout              # console setting
-    level       : info                # log level
-    slevel      : error               # stack level
-    color       : auto                # color 
-  - name        : file
-    dir         : logs                # default logs
-    group       : <HOSTNAME>          # default <HOSTNAME>, if set, real dir will be $dir/$group
-    filename    : <APP>_<LOG>         # default <LOG_NAME>, will not write to file if set empty, real file path will be $dir/$group/$file_name
-    max_size    : 100                 # default 100, unit MB
-    max_backup  : 7                   # default 7
-    max_age     : 7                   # default 7
-    compress    : false               # default false
-    level       : debug               # default debug, for file, valid value is [debug, info, warn, error, fatal, panic]
-    slevel      : warn                # default warn , for file, valid value is [debug, info, warn, error, fatal, panic]
-    color       : false               # default false, for file
-
-  # mode 2
-  multi_file:
-  - tag     : multi_file
-    filename: <APP>_<LOG>_debug
-    level   : [ debug, debug ]
-  - filename: <APP>_<LOG>_info
-    level   : [ info, info ]
-  - filename: <APP>_<LOG>_warn
-    level   : [ warn, warn ]
-  - filename: <APP>_<LOG>_err
-    level   : [ error, error ]
-
-  only_console:
-  - console: stdout
-    level  : info
-    slevel : error
-`
-
 const (
 	cfgRootKey       = "elog"          // root key in the config file for elog
-	dfDir            = "logs"
-	dfGroup          = "<HOSTNAME>"  
-	dfFileName       = "<APP>_<LOG>"
-	dfTag            = ""
-	dfFileCfgName    = "file"
-	dfConsoleCfgName = "console"
 )
 
 var (
-	dfCfg       = *genDfCfg()
 	appName     = AppName()
 	hostname, _ = os.Hostname()
 )
@@ -110,14 +27,15 @@ const (
 	dirKey 		     	 = "dir"
 	groupKey 	     	 = "group"
 	filenameKey	     = "filename"
-	maxsizeKey       = "max_size"
+	consoleKey       = "console"
+	maxSizeKey       = "max_size"
 	maxBackupKey     = "max_backup"
 	maxAgeKey        = "max_age"
 	compressKey      = "compress"
 	levelKey         = "level"
 	stackLevelKey    = "slevel"
 	colorKey         = "color"
-	consoleKey       = "console"
+	
 
 	c_levelKey       = "c_level"
 	c_stackLevelKey  = "c_slevel"
@@ -134,12 +52,12 @@ var skipKeys = map[string]bool{
 		dirKey         : true,
 		groupKey       : true,
 		filenameKey    : true,
-		maxsizeKey     : true,
+		consoleKey     : true,
+		maxSizeKey     : true,
 		maxBackupKey   : true,
 		maxAgeKey      : true,
 		compressKey    : true,
 		colorKey       : true,
-		consoleKey     : true,
 		c_levelKey     : true,
 		c_stackLevelKey: true,
 		c_colorKey     : true,
@@ -204,19 +122,20 @@ func (c *LogCfg)Clone() (*LogCfg){
 
 type LoggerCfg struct {
 	df   *Cfg
-	logs []*LogCfg
+	cfgs []*LogCfg
 }
 func (c *LoggerCfg)Clone() (*LoggerCfg){
 	out := *c
+	out.cfgs = make([]*LogCfg, len(c.cfgs))
 
-	for i, cfg := range c.logs {
-		c.logs[i] = cfg.Clone()
+	for i, cfg := range c.cfgs {
+		out.cfgs[i] = cfg.Clone()
 	}
 
 	return &out 
 }
 func (c *LoggerCfg)FindLogCfg(name string) *LogCfg {
-	for _, cfg := range c.logs{
+	for _, cfg := range c.cfgs{
 		if name == cfg.Name{	
 			return cfg.Clone()
 		}
@@ -229,25 +148,6 @@ func (c *LoggerCfg)validateAndCheck() error {
 	return nil
 }
 
-func genDfCfg() *Cfg {
-	return &Cfg{
-		Tag              : dfTag,
-		Dir              : dfDir,
-		Group            : dfGroup,
-		FileName         : dfFileName,
-		MaxSize          : 100,
-		MaxBackup        : 7,
-		MaxAge           : 7,
-		ConsoleLevel     : LEVEL_INFO,
-		ConsoleColor     : ColorAuto,
-		ConsoleStackLevel: LEVEL_ERROR,
-		FileLevel        : LEVEL_DEBUG,
-		FileColor        : ColorAuto,
-		FileStackLevel   : LEVEL_WARN,
-		Compress         : false,
-	}
-}
-
 func (cfg *Cfg)check() (err error) {
 	return cfg.checkFileRotate();
 }
@@ -256,7 +156,7 @@ func (cfg *Cfg)genLoggerCfg()*LoggerCfg {
 
 	out := &LoggerCfg{}
 
-	out.logs = append(out.logs, &LogCfg{
+	out.cfgs = append(out.cfgs, &LogCfg{
 		file             : true,
 		Name             : dfFileCfgName,
 		Tag              : cfg.Tag,
@@ -271,7 +171,7 @@ func (cfg *Cfg)genLoggerCfg()*LoggerCfg {
 		StackLevel       : cfg.FileStackLevel,
 		Compress         : cfg.Compress,
 	})
-	out.logs = append(out.logs, &LogCfg{
+	out.cfgs = append(out.cfgs, &LogCfg{
 		file             : false,
 		Name             : dfConsoleCfgName,
 		Tag              : cfg.Tag,
@@ -285,7 +185,7 @@ func (cfg *Cfg)genLoggerCfg()*LoggerCfg {
 }
 
 func (cfg *Cfg)genLogCfg()[]*LogCfg {
-	return cfg.genLoggerCfg().logs
+	return cfg.genLoggerCfg().cfgs
 }
 
 func (cfg *Cfg)checkFileRotate() (err error) {
@@ -334,23 +234,23 @@ func parsingCfgsFromFile(file string) (cfgs map[string]*LoggerCfg) {
 
 	path, err := filepath.Abs(file); 
 	if err != nil {
-		syslog.Fatalf("readCfgFromFile failed from file '%s': %s", file, err)
+		syslog.Warnf("readCfgFromFile failed from file '%s': %s", file, err)
 	}
 
 	ext := filepath.Ext(path)
 	if len(ext) > 1 {
 		ext = ext[1:]
 	} else {
-		syslog.Fatalf("readCfgFromFile failed from file '%s': can not found ext in file like .yml .ini ...", file)
+		syslog.Warnf("readCfgFromFile failed from file '%s': can not found ext in file like .yml .ini ...", file)
 	}
 
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
-	 	syslog.Fatalf("readCfgFromFile failed from file '%s': %s", file, err)
+		syslog.Warnf("readCfgFromFile failed from file '%s': %s", file, err)
 	}
 
-	if cfgs, err = parsingCfgsFromStr(string(data), ext); err != nil {
-		syslog.Fatalf("readCfgFromFile failed from file '%s': %s", file, err)
+	if cfgs, err = parsingCfgsFromStr(string(data), ext, cfgRootKey); err != nil {
+		syslog.Warnf("readCfgFromFile failed from file '%s': %s", file, err)
 	}
 
 	return cfgs
@@ -358,7 +258,7 @@ func parsingCfgsFromFile(file string) (cfgs map[string]*LoggerCfg) {
 
 // parsingCfgsFromStr
 // ext - file extension or content type
-func parsingCfgsFromStr(content string, ext string) (map[string]*LoggerCfg, error) {
+func parsingCfgsFromStr(content string, ext string, rootKey string) (map[string]*LoggerCfg, error) {
 
 	cfgs := map[string]*LoggerCfg{} 
 
@@ -368,30 +268,32 @@ func parsingCfgsFromStr(content string, ext string) (map[string]*LoggerCfg, erro
 		return nil, fmt.Errorf("parsing failed: %s", err)
 	}
 
-	rootObj := v.Get(cfgRootKey)
+	rootObj := v.Get(rootKey)
 	if rootObj == nil {
-		syslog.Warnf ("can not find key '%s', skipped parsingCfgs for elog", cfgRootKey)
+		syslog.Warnf ("can not find key '%s', skipped parsingCfgs for elog", rootKey)
 		return cfgs, nil
 	}
 
 	root, ok := rootObj.(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("invalid type of '.%s' in config file", cfgRootKey)
+		return nil, fmt.Errorf("invalid type of '.%s' in config file", rootKey)
 	}
 
 	// parsing default cfg
-	tmpDfCfg, err := parsingDfCfg(&dfCfg, root)
+	tmpDfCfg, err := parsingDfCfg(&dfLoggerCfg, root)
 	if err != nil{
 		return nil, fmt.Errorf("parsing default cfg failed:\n %s", err)
 	}
 
 	// parsing cfgs
-	news := make(map[string]*LoggerCfg)
+	cache := make(map[string]*LoggerCfg)
+	cache[""]        = tmpDfCfg.genLoggerCfg()
+	cache["default"] = tmpDfCfg.genLoggerCfg()
 	for key := range root {
 		if skipKeys[key] {
 			continue
 		}
-		tmpCfg, err := parsingLoggerCfg(tmpDfCfg, v, cfgRootKey, key, news)
+		tmpCfg, err := parsingLoggerCfg(tmpDfCfg, v, rootKey, key, cache)
 		if err != nil {
 			return nil, fmt.Errorf("parsing cfg for '%s' failed:\n %s", key, err)
 		}
@@ -399,7 +301,7 @@ func parsingCfgsFromStr(content string, ext string) (map[string]*LoggerCfg, erro
 		cfgs[key] = tmpCfg
 	}
 
-	dfCfg = *tmpDfCfg
+	dfLoggerCfg = *tmpDfCfg
 
 	return cfgs, nil
 }
@@ -417,7 +319,7 @@ func getViperFromFile(file string)(*viper.Viper, error){
 		return nil, fmt.Errorf("readCfgFromFile failed from file '%s': can not found ext in filename like %s", file, []string{"json", "toml", "yaml", "yml", "properties", "props", "prop", "hcl"})
 	}
 
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("readCfgFromFile failed from file '%s': %s", file, err)
 	}
@@ -445,9 +347,9 @@ func parsingLoggerCfgFromFile(file string, keys string) (cfg *LoggerCfg, err err
 		return nil, fmt.Errorf("keys '%s' can not be found in file '%s'", keys, file)
 	}
 
-	cfg, err = parsingLoggerCfgSmart(&dfCfg, rootObj, nil)
+	cfg, err = parsingLoggerCfgSmart(&dfLoggerCfg, rootObj, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error occured when parsing '%s' in file '%s': %s", keys, file, err)
+		return nil, fmt.Errorf("error occurred when parsing '%s' in file '%s': %s", keys, file, err)
 	}
 
 	return cfg, err
@@ -460,9 +362,10 @@ func parsingDfCfg(dfCfg *Cfg, root map[string]interface{})(cfg *Cfg, err error) 
 	var level, stackLevel zapcore.LevelEnabler
 	var color colorSwitch
 
+	_, err = parsingInStrFromMap( &cfg.FileName , root, filenameKey , nil); if err != nil { return nil, fmt.Errorf("parsing %s failed: %s", filenameKey, err)}
 	_, err = parsingInStrFromMap( &cfg.Dir      , root, dirKey      , nil); if err != nil { return nil, fmt.Errorf("parsing %s failed: %s", dirKey, err)}
 	_, err = parsingInStrFromMap( &cfg.Group    , root, groupKey    , nil); if err != nil { return nil, fmt.Errorf("parsing %s failed: %s", groupKey, err)}
-	_, err = parsingInIntFromMap( &cfg.MaxSize  , root, maxsizeKey  , nil); if err != nil { return nil, fmt.Errorf("parsing %s failed: %s", maxsizeKey, err)}
+	_, err = parsingInIntFromMap( &cfg.MaxSize  , root, maxSizeKey  , nil); if err != nil { return nil, fmt.Errorf("parsing %s failed: %s", maxSizeKey, err)}
 	_, err = parsingInIntFromMap( &cfg.MaxBackup, root, maxBackupKey, nil); if err != nil { return nil, fmt.Errorf("parsing %s failed: %s", maxBackupKey, err)}
 	_, err = parsingInIntFromMap( &cfg.MaxAge   , root, maxAgeKey   , nil); if err != nil { return nil, fmt.Errorf("parsing %s failed: %s", maxAgeKey, err)}
 	_, err = parsingInBoolFromMap(&cfg.Compress , root, compressKey , nil); if err != nil { return nil, fmt.Errorf("parsing %s failed: %s", compressKey, err)}
@@ -491,23 +394,31 @@ func parsingDfCfg(dfCfg *Cfg, root map[string]interface{})(cfg *Cfg, err error) 
 	return cfg, nil
 }
 
-func parsingLoggerCfg(df *Cfg, v *viper.Viper, rootKey string, curKey string, news map[string]*LoggerCfg) (cfg *LoggerCfg, err error) {
+func parsingLoggerCfg(df *Cfg, v *viper.Viper, rootKey string, curKey string, cache map[string]*LoggerCfg) (cfg *LoggerCfg, err error) {
 
-	root := v.Get(rootKey + "." + curKey)
+	keyPath := rootKey
+	if curKey != "" {
+		keyPath = rootKey + "." + curKey
+	}
 
-	cfg, err = parsingLoggerCfgSmart(df, root, news)
+	root := v.Get(keyPath)
+	if root == nil {
+		return nil, fmt.Errorf("can not found any settings in path '%s'", keyPath)
+	}
+
+	cfg, err = parsingLoggerCfgSmart(df, root, cache)
 	if err != nil {
 		return nil, fmt.Errorf("parsing failed in: %s.%s: %s", rootKey, curKey, err)
 	}
 
-	if news != nil && curKey != ""{
-		news[curKey] = cfg
+	if cache != nil && curKey != ""{
+		cache[curKey] = cfg
 	}
 
 	return cfg, nil
 }
 
-func parsingLoggerCfgSmart(df *Cfg, in interface{}, news map[string]*LoggerCfg)(cfg *LoggerCfg, err error){
+func parsingLoggerCfgSmart(df *Cfg, in interface{}, cache map[string]*LoggerCfg)(cfg *LoggerCfg, err error){
 
 	cfg = &LoggerCfg{df: df}
 	var cur map[string]interface{}
@@ -529,15 +440,16 @@ func parsingLoggerCfgSmart(df *Cfg, in interface{}, news map[string]*LoggerCfg)(
 					return nil, fmt.Errorf("invalid type in [%d], need a type like map[string]interface{}", idx)
 			}
 
-			logCfg, err := parsingLogCfg(df, cur, news)
+			logCfg, err := parsingLogCfg(df, cur, cache)
 			if err != nil {
 				return nil, fmt.Errorf("parsing failed in [%d]: %s", idx, err)
 			}
-			cfg.logs = append(cfg.logs, logCfg...)
+			cfg.cfgs = append(cfg.cfgs, logCfg...)
 		}
 
-		if len(cfg.logs) == 0 {
-			return nil, fmt.Errorf("can not found any log configs")
+		if len(cfg.cfgs) == 0 {
+			return df.genLoggerCfg(), nil
+			//return nil, fmt.Errorf("can not found any log configs")
 		}
 
 		return cfg, nil
@@ -582,15 +494,22 @@ func tryConvert2(in map[string]string)(map[string]interface{}) {
 	return out
 }
 
-func parsingLogCfg(dfCfg *Cfg, root map[string]interface{}, news map[string]*LoggerCfg)(cfgs []*LogCfg, err error){
+func parsingLogCfg(dfCfg *Cfg, root map[string]interface{}, cache map[string]*LoggerCfg)(cfgs []*LogCfg, err error){
 
 	cfg := &LogCfg{}
 
-	set, err := parsingInStrFromMap(&cfg.inherit, root, inheritKey, nil); if err != nil { return nil, fmt.Errorf("parsing inherit failed: %s", err)}
-	if set {
-		cfgs = cfgMan.findLogCfgs(cfg.inherit, news)
+	inherit, err := parsingInStrFromMap(&cfg.inherit, root, inheritKey, nil); if err != nil { return nil, fmt.Errorf("parsing inherit failed: %s", err)}
+	if inherit {
+		cfgs = cfgMan.findLogCfgs(cfg.inherit, cache)
 		if cfgs == nil {
 			return nil, fmt.Errorf("can not find needed inherit log '%s'", cfg.inherit)
+		}
+		for _, iter := range cfgs {
+			if iter.file {
+				cfg.FileName = iter.FileName
+			} else {
+				cfg.Console = iter.Console
+			}
 		}
 	}
 
@@ -613,11 +532,11 @@ func parsingLogCfg(dfCfg *Cfg, root map[string]interface{}, news map[string]*Log
 			}
 			cfg.file = true
 			_, err = parsingInStrFromMap(&cfg.Dir      , root, dirKey      , &df.Dir      ); if err != nil { return nil, fmt.Errorf("parsing dir failed: %s", err)}
-		  _, err = parsingInStrFromMap(&cfg.Group    , root, groupKey    , &df.Group    ); if err != nil { return nil, fmt.Errorf("parsing group failed: %s", err)}
-		  _, err = parsingInIntFromMap(&cfg.MaxSize  , root, maxsizeKey  , &df.MaxSize  ); if err != nil { return nil, fmt.Errorf("parsing max_size failed: %s", err)}
-		  _, err = parsingInIntFromMap(&cfg.MaxBackup, root, maxBackupKey, &df.MaxBackup); if err != nil { return nil, fmt.Errorf("parsing max_backup failed: %s", err)}
-		  _, err = parsingInIntFromMap(&cfg.MaxAge   , root, maxAgeKey   , &df.MaxAge)   ; if err != nil { return nil, fmt.Errorf("parsing max_age failed: %s", err)}
-		  _, err = parsingInBoolFromMap(&cfg.Compress, root, compressKey , &df.Compress) ; if err != nil { return nil, fmt.Errorf("parsing compress failed: %s", err)}
+			_, err = parsingInStrFromMap(&cfg.Group    , root, groupKey    , &df.Group    ); if err != nil { return nil, fmt.Errorf("parsing group failed: %s", err)}
+			_, err = parsingInIntFromMap(&cfg.MaxSize  , root, maxSizeKey  , &df.MaxSize  ); if err != nil { return nil, fmt.Errorf("parsing max_size failed: %s", err)}
+			_, err = parsingInIntFromMap(&cfg.MaxBackup, root, maxBackupKey, &df.MaxBackup); if err != nil { return nil, fmt.Errorf("parsing max_backup failed: %s", err)}
+			_, err = parsingInIntFromMap(&cfg.MaxAge   , root, maxAgeKey   , &df.MaxAge)   ; if err != nil { return nil, fmt.Errorf("parsing max_age failed: %s", err)}
+			_, err = parsingInBoolFromMap(&cfg.Compress, root, compressKey , &df.Compress) ; if err != nil { return nil, fmt.Errorf("parsing compress failed: %s", err)}
 		} else {
 			if cfg.Console == ""{
 				continue
