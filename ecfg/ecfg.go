@@ -2,7 +2,7 @@ package ecfg
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 )
 
@@ -19,9 +19,9 @@ func ParsingFromCfgFile(path string, key string, dest interface{}) error {
 		return fmt.Errorf("can not found ext in file '%s' like .yml .ini .toml", path)
 	}
 
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
-	 	return fmt.Errorf("read '%s' failed: %s", path, err)
+		return fmt.Errorf("read '%s' failed: %s", path, err)
 	}
 
 	err = parsingCfgFromStr(string(data), ext, key, dest)

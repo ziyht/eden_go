@@ -14,12 +14,12 @@ func main() {
 
 	err := raise()
 
-	eerr.PrintSourceColor(err, 0)
+	eerr.PrintSourceColor(err, 1)
 
 	f, _ := eerr.StackCause(err)
 	fmt.Println(f.String())
 
-	f = eerr.Call(0)
+	f = eerr.Call(1)
 	fmt.Println(f.String())
 }
 
