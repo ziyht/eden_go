@@ -407,3 +407,22 @@ func TestRangIn(t *testing.T) {
 	})
 	assert.Equal(t, 10, cnt)
 }
+
+func TestKeys(t *testing.T) {
+
+	rb := New[int, int]()
+
+	for i := 0; i < 1000; i++ {
+		rb.Add(i, i)
+	}
+	
+	keys := rb.Keys()
+	for i := 0; i < 1000; i++ {
+		assert.Equal(t, i, keys[i])
+	}
+
+	vals := rb.Vals()
+	for i := 0; i < 1000; i++ {
+		assert.Equal(t, i, vals[i])
+	}
+}

@@ -146,7 +146,6 @@ func TestRange(t *testing.T) {
 }
 
 func TestRangFrom(t *testing.T) {
-
 	sl := New[int, int]()
 
 	for i := 0; i < 100; i++ {
@@ -320,4 +319,23 @@ func TestRangIn(t *testing.T) {
 		return true
 	})
 	assert.Equal(t, 0, cnt)
+}
+
+func TestKeys(t *testing.T) {
+
+	sl := New[int, int]()
+
+	for i := 0; i < 1000; i++ {
+		sl.Add(i, i)
+	}
+	
+	keys := sl.Keys()
+	for i := 0; i < 1000; i++ {
+		assert.Equal(t, i, keys[i])
+	}
+
+	vals := sl.Vals()
+	for i := 0; i < 1000; i++ {
+		assert.Equal(t, i, vals[i])
+	}
 }

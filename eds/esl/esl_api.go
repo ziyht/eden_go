@@ -70,6 +70,26 @@ func (s *ESL[K, V]) Val(key K, df... V) (V) {
 	return result
 }
 
+// Keys returns all keys in the list.
+func (s *ESL[K, V]) Keys() (keys []K) {
+	s.traverseNode(func(n *Node[K, V]) bool {
+		keys = append(keys, n.key)
+		return true
+	})
+
+	return
+}
+
+// Vals returns all values in the list.
+func (s *ESL[K, V]) Vals() (vals []V) {
+	s.traverseNode(func(n *Node[K, V]) bool {
+		vals = append(vals, n.Val)
+		return true
+	})
+
+	return
+}
+
 // Find returns the node with the specified key in the list.
 // if key not found, return nil
 func (s *ESL[K, V]) Find(key K) (*Node[K, V]) {

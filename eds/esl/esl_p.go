@@ -308,7 +308,23 @@ func (s *ESL[K, V]) Remove(key K) bool {
 	}
 }
 
-// Range calls f sequentially for each value present in the skip set.
+// traverseNode calls f sequentially for each value present in the skip list.
+// If f returns false, range stops the iteration.
+func (s *ESL[K, V]) traverseNode(f func( *Node[K, V]) bool) {
+	x := s.header.atomicLoadNext(0)
+	for x != nil {
+		if !x.flags.Check(fullyLinked|deleting, fullyLinked) {
+			x = x.atomicLoadNext(0)
+			continue
+		}
+		if !f(x) {
+			break
+		}
+		x = x.atomicLoadNext(0)
+	}
+}
+
+// traverse calls f sequentially for each value present in the skip list.
 // If f returns false, range stops the iteration.
 func (s *ESL[K, V]) traverse(f func(key K, val V) bool) {
 	x := s.header.atomicLoadNext(0)
@@ -324,7 +340,7 @@ func (s *ESL[K, V]) traverse(f func(key K, val V) bool) {
 	}
 }
 
-// traverseFrom calls f sequentially for all elems with `key >= start` in the skip set.
+// traverseFrom calls f sequentially for all elems with `key >= start` in the skip list.
 // If f returns false, range stops the iteration.
 func (s *ESL[K, V]) traverseFrom(start K, f func(key K, val V) bool) {
 	var (
@@ -355,7 +371,7 @@ func (s *ESL[K, V]) traverseFrom(start K, f func(key K, val V) bool) {
 	}
 }
 
-// traverseFrom calls f sequentially for all elems with `start <= key <= end` in the skip set.
+// traverseFrom calls f sequentially for all elems with `start <= key <= end` in the skip list.
 // If f returns false, range stops the iteration.
 func (s *ESL[K, V]) traverseFromTo(start K, end K, f func(key K, val V) bool) {
 	var (

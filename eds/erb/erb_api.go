@@ -99,6 +99,32 @@ func (t *ERB[K, V]) Val(key K, df... V) V {
 	return result
 }
 
+func (t *ERB[K, V]) Keys() (keys []K) {
+	if t.root == nil {
+		return
+	}
+
+	t.root.traverseNodeInOrder(func(n *Node[K, V]) bool {
+		keys = append(keys, n.key)
+		return true
+	})
+
+	return
+}
+
+func (t *ERB[K, V]) Vals() (vals []V) {
+	if t.root == nil {
+		return
+	}
+
+	t.root.traverseNodeInOrder(func(n *Node[K, V]) bool {
+		vals = append(vals, n.Val)
+		return true
+	})
+
+	return
+}
+
 // Find finds the node and return it
 func (t *ERB[K, V]) Find(key K) (*Node[K, V]) {
 	return t.find(key)

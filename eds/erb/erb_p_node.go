@@ -174,6 +174,24 @@ func (n *Node[K, V]) traverseReverseInOrder(callback func(k K, v V) bool) bool {
 	return true
 }
 
+func (n *Node[K, V]) traverseNodeInOrder(callback func(n *Node[K, V]) bool) bool {
+	if n != nil {
+		if !n.left.traverseNodeInOrder(callback) {
+			return false
+		}
+
+		if !callback(n) {
+			return false
+		}
+
+		if !n.right.traverseNodeInOrder(callback) {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (n *Node[K, V]) traverseNodeFrom_InOrder(from K, callback func(k K, v V) bool) bool {
 	if n != nil {
 		if n.key >= from {
