@@ -78,10 +78,10 @@ func (db *db)sets(prefix []byte, keys [][]byte, vals [][]byte, ttls ... time.Dur
 	}
 
 	switch ld {
-	  case 0 : _ttl_getter = func(ttls []time.Duration, i int)([]time.Duration){ return nil  };
+		case 0 : _ttl_getter = func(ttls []time.Duration, i int)([]time.Duration){ return nil  };
 		case 1 : _ttl_getter = func(ttls []time.Duration, i int)([]time.Duration){ return ttls };
 		case lk: ttl_cache := make([]time.Duration, 1)
-						 _ttl_getter = func(ttls []time.Duration, i int)([]time.Duration){ ttl_cache[0] = ttls[i]; return ttl_cache };
+						_ttl_getter = func(ttls []time.Duration, i int)([]time.Duration){ ttl_cache[0] = ttls[i]; return ttl_cache };
 		default: return fmt.Errorf("the len for key(%d) and ttls(%d) are not match, and len of ttls is not 1 or 0", lk, ld)
 	}
 
@@ -92,7 +92,7 @@ func (db *db)sets(prefix []byte, keys [][]byte, vals [][]byte, ttls ... time.Dur
 			for ; i < lk && cnt < 1000; i++ {
 
 				bin := _val_getter(vals, i)
-				 val.setBytes(bin)
+				val.setBytes(bin)
 				if err := tx.Set(prefix, keys[i], val.marshal(), _ttl_getter(ttls, i)...); err != nil {
 					return err
 				}

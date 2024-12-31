@@ -54,12 +54,12 @@ func GenDsn(driver, dir string, params ...map[string][]string) string {
 	return dsn
 }
 
-func NewMemCache[T any](opts ...MemCacheOpts[T]) (*MemCache[T]) {
+func NewMemCache[V any](opts ...MemCacheOpts[V]) (*MemCache[V]) {
 	if len(opts) > 0 {
-		return newMemCache(opts[0])
+		return newMemCache[V](opts[0])
 	}
 
-	return newMemCache(MemCacheOpts[T]{})
+	return newMemCache[V](MemCacheOpts[V]{})
 }
 
 func MakeTypedItemRegion[T Item](r* Region)(*ItemRegion[T]){

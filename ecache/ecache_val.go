@@ -87,8 +87,10 @@ func (d *Val)marshal()[]byte{
 // note: string type will be considered as []byte
 func NewVal(d any) (out *Val, err error){
   out = newVal()
-  if out.Reset(d) != nil {
+  err = out.Reset(d)
+  if err != nil {
     recycleVal(out)
+    return nil, err
   }
   return 
 }
@@ -122,8 +124,8 @@ func (v *Val)Reset(d any) error {
                         }
                         v.__reset(d_)
 
-    default: v.setErr(fmt.Sprintf("type %T not supported", d_))
-             return v.Error()
+    default:  v.setErr(fmt.Sprintf("type %T not supported", d_))
+              return v.Error()
   }
 
   return nil
@@ -142,7 +144,7 @@ func (r *Val)AppendInt32(v int32)error{
     r.__appendUint32(uint32(v))
     return nil
   }
-  return fmt.Errorf("invald operation, you can not append a %v value to a Raw with type '%s'", v, r.__typeStr())
+  return fmt.Errorf("invalid operation, you can not append a %v value to a Raw with type '%s'", v, r.__typeStr())
 }
 
 func (r *Val)AppendInt64(v int64)error{
@@ -154,7 +156,7 @@ func (r *Val)AppendInt64(v int64)error{
     r.__appendUint64(uint64(v))
     return nil
   }
-  return fmt.Errorf("invald operation, you can not append a %v value to a Raw with type '%s'", v, r.__typeStr())
+  return fmt.Errorf("invalid operation, you can not append a %v value to a Raw with type '%s'", v, r.__typeStr())
 }
 
 func (r *Val)String()string{
@@ -197,29 +199,29 @@ func (d *Val)setErr(err string){
   d.__reset(VT_ERR); d.__appendBytes(ptr.StringToBytes(err))
 }
 
-func (d *Val)Bool()(bool ){ if d.__isType(BOOL ) {return d.__Uint8 () == 1  }; return false }
-func (d *Val)I8 ()(int8 ){ if d.__isType(I8 ) {return int8 (d.__Uint8 ())}; return 0}
-func (d *Val)I16()(int16){ if d.__isType(I16) {return int16(d.__Uint16())}; return 0}
-func (d *Val)I32()(int32){ if d.__isType(I32) {return int32(d.__Uint32())}; return 0}
-func (d *Val)I64()(int64){ if d.__isType(I64) {return int64(d.__Uint64())}; return 0}
-func (d *Val)U8 ()(uint8 ){ if d.__isType(U8 ) {return uint8 (d.__Uint8 ())}; return 0}
-func (d *Val)U16()(uint16){ if d.__isType(U16) {return uint16(d.__Uint16())}; return 0}
-func (d *Val)U32()(uint32){ if d.__isType(U32) {return uint32(d.__Uint32())}; return 0}
-func (d *Val)U64()(uint64){ if d.__isType(U64) {return uint64(d.__Uint64())}; return 0}
-func (d *Val)F32()(float32){ if !d.__isType(F32) {return 0}; val := d.__Uint32(); return *(*float32)(unsafe.Pointer(&val)) }
-func (d *Val)F64()(float64){ if !d.__isType(F64) {return 0}; val := d.__Uint64(); return *(*float64)(unsafe.Pointer(&val)) }
-func (d *Val)Str()(string){ if d.__isType(BYTES ) { return ptr.BytesToString(d.d) }; return "" }
+func (d *Val)Bool()(bool)  { if  d.__isType(BOOL) { return d.__Uint8 () == 1  }; return false }
+func (d *Val)I8()  (int8)  { if  d.__isType(I8 )  { return int8 (d.__Uint8 ())}; return 0}
+func (d *Val)I16()(int16)  { if  d.__isType(I16)  { return int16(d.__Uint16())}; return 0}
+func (d *Val)I32()(int32)  { if  d.__isType(I32)  { return int32(d.__Uint32())}; return 0}
+func (d *Val)I64()(int64)  { if  d.__isType(I64)  { return int64(d.__Uint64())}; return 0}
+func (d *Val)U8() (uint8)  { if  d.__isType(U8 )  { return uint8 (d.__Uint8 ())}; return 0}
+func (d *Val)U16()(uint16) { if  d.__isType(U16)  { return uint16(d.__Uint16())}; return 0}
+func (d *Val)U32()(uint32) { if  d.__isType(U32)  { return uint32(d.__Uint32())}; return 0}
+func (d *Val)U64()(uint64) { if  d.__isType(U64)  { return uint64(d.__Uint64())}; return 0}
+func (d *Val)F32()(float32){ if !d.__isType(F32)  { return 0}; val := d.__Uint32(); return *(*float32)(unsafe.Pointer(&val)) }
+func (d *Val)F64()(float64){ if !d.__isType(F64)  { return 0}; val := d.__Uint64(); return *(*float64)(unsafe.Pointer(&val)) }
+func (d *Val)Str()(string) { if  d.__isType(BYTES ) { return ptr.BytesToString(d.d) }; return "" }
 func (d *Val)Bytes()([]byte){ if d.__isType(BYTES ) { return d.d }; return nil }
 func (d *Val)Time()(out time.Time){ if d.__isType(TIME) { out.UnmarshalBinary(d.d) }; return}
 func (d *Val)Duration()(time.Duration){ if d.__isType(DURATION) { return time.Duration(d.__Uint64()) }; return 0}
 func (d *Val)Error()error{ if d.__isType(VT_ERR) { return errors.New(ptr.BytesToString(d.d)) }; return nil }
 
 func (d *Val)GetBool()(bool,  error){ if e := d.__checkType(BOOL ); e != nil {return false, e}; return d.__Uint8 () == 1, nil }
-func (d *Val)GetI8 ()(int8,  error){ if e := d.__checkType(I8 ); e != nil {return 0, e}; return int8 (d.__Uint8 ()), nil }
+func (d *Val)GetI8() (int8,  error){ if e := d.__checkType(I8 ); e != nil {return 0, e}; return int8 (d.__Uint8 ()), nil }
 func (d *Val)GetI16()(int16, error){ if e := d.__checkType(I16); e != nil {return 0, e}; return int16(d.__Uint16()), nil }
 func (d *Val)GetI32()(int32, error){ if e := d.__checkType(I32); e != nil {return 0, e}; return int32(d.__Uint32()), nil }
 func (d *Val)GetI64()(int64, error){ if e := d.__checkType(I64); e != nil {return 0, e}; return int64(d.__Uint64()), nil }
-func (d *Val)GetU8 ()(uint8,  error){ if e := d.__checkType(U8 ); e != nil {return 0, e}; return d.__Uint8 (), nil }
+func (d *Val)GetU8() (uint8,  error){ if e := d.__checkType(U8 ); e != nil {return 0, e}; return d.__Uint8 (), nil }
 func (d *Val)GetU16()(uint16, error){ if e := d.__checkType(U16); e != nil {return 0, e}; return d.__Uint16(), nil }
 func (d *Val)GetU32()(uint32, error){ if e := d.__checkType(U32); e != nil {return 0, e}; return d.__Uint32(), nil }
 func (d *Val)GetU64()(uint64, error){ if e := d.__checkType(U64); e != nil {return 0, e}; return d.__Uint64(), nil }

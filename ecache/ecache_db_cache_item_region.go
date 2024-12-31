@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dgraph-io/ristretto"
+	//"github.com/dgraph-io/ristretto"
 	"github.com/ziyht/eden_go/ecache/driver"
 )
 
@@ -13,12 +13,12 @@ type Item interface {
 	Unmarshal([]byte) error   // ummarshal data to self
 }
 
-type ItemRegion [T Item] struct {
+type ItemRegion[V Item] struct {
   db       *db
 	meta     rMeta
 	ttl      time.Duration
-	mem      *MemCache[T]
-	Metrics  *ristretto.Metrics
+	mem      *MemCache[V]
+	Metrics  *Metrics
 }
 
 func newItemRegion[T Item](db *db, ks []string) (*ItemRegion[T]) {
@@ -36,13 +36,13 @@ func (r *ItemRegion[T])EnableMemCache(maxCount int64, maxTTL time.Duration) {
 	opts := MemCacheOpts[T]{
 		CountersNum: maxCount * 10,
 		MaxCost    : maxCount,
-		TTL        : r.ttl,
+		DfTTL      : r.ttl,
 		MaxTTL     : maxTTL,
 		AutoReRent : true,
 		IgnoreInternalCost: true,
 		Statistics : true,
 	}
-	r.mem = newMemCache(opts)
+	r.mem = newMemCache[T](opts)
 	r.Metrics = r.mem.Metrics
 }
 
@@ -50,12 +50,12 @@ func (r *ItemRegion[T])SetDefaultTTL(ttl time.Duration){
 	r.ttl = ttl
 }
 
-func (r *ItemRegion[T])setToMem(k []byte, i T, cost int64, ttl ...time.Duration) {
+func (r *ItemRegion[T])setToMem(k []byte, v T, cost int64, ttl ...time.Duration) {
 	if r.mem == nil {
 		return
 	}
 
-	r.mem.SetEx(k, i, 1, ttl...)
+	r.mem.SetEx(k, v, cost, ttl...)
 }
 
 func (r *ItemRegion[T])getFromMem(k []byte, del...bool) (out T, ok bool) {
@@ -76,7 +76,7 @@ func (r *ItemRegion[T])getFromMem(k []byte, del...bool) (out T, ok bool) {
 }
 
 // key and val can only be string or []byte
-func (r *ItemRegion[T])Del(key any) error {
+func (r *ItemRegion[T])Del(key []byte) error {
 	k, err := toBytesKey(key)
 	if err != nil {
 		return err
@@ -176,11 +176,13 @@ func (r *ItemRegion[T])Get(key any, new func() T, del...bool)(out T, err error) 
 //     skipErrs : if is true, it will continue when err occurs in Unmarshal operations
 //     Del      : if is true, the keys will be deleted after all the operations
 //     RetainNil: if is true, the nil value which created by err and not_found will be retain in the results
-func (r *ItemRegion[T])Gets(keys any, new func() T, skipErrs_Del_RetainNil...bool)(items []T, err error){
-	ks, err := toBytesArr(keys)
-	if err != nil {
-		return nil, fmt.Errorf("invalid type(%t) of input keys: %s", keys, err)
-	}
+func (r *ItemRegion[T])Gets(keys [][]byte, new func() T, skipErrs_Del_RetainNil...bool)(items []T, err error){
+	// ks, err := toBytesArr(keys)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("invalid type(%t) of input keys: %s", keys, err)
+	// }
+
+	ks := keys
 
 	if len(ks) == 0 {
 		return nil, err
@@ -223,7 +225,9 @@ func (r *ItemRegion[T])Gets(keys any, new func() T, skipErrs_Del_RetainNil...boo
 	}
 
 	if len(skipErrs_Del_RetainNil) > 1 && skipErrs_Del_RetainNil[1] {
-		r.mem.Dels(ks)
+		for _, key := range ks {
+			r.mem.Del(key)
+		}
 		r.db.dels(r.meta.kpre, ks...)
 		r.mem.Wait()
 	} 

@@ -11,7 +11,7 @@ import (
 
 func TestMemCacheBaisc(t *testing.T){
 
-  c := ecache.NewMemCache(
+  c := ecache.NewMemCache[string](
 		ecache.MemCacheOpts[string]{
 			Statistics : true,
 			IgnoreInternalCost: true,
@@ -75,9 +75,9 @@ func TestMemCacheBaisc(t *testing.T){
 }
 
 func TestMemCacheDfTTL(t *testing.T){
-  c := ecache.NewMemCache(
+  c := ecache.NewMemCache[string](
 		ecache.MemCacheOpts[string]{
-		  TTL        : time.Second,
+			DfTTL        : time.Second,
 			Statistics : true,
 			IgnoreInternalCost: true,
 		},
@@ -123,9 +123,9 @@ func TestMemCacheDfTTL(t *testing.T){
 }
 
 func TestMemCacheMaxTTL(t *testing.T){
-  c := ecache.NewMemCache(
+  c := ecache.NewMemCache[string](
 		ecache.MemCacheOpts[string]{
-		  TTL        : time.Second,
+			DfTTL      : time.Second,
 			MaxTTL     : time.Second * 3,
 			Statistics : true,
 			IgnoreInternalCost: true,
@@ -190,29 +190,28 @@ func TestMemCacheMaxTTL(t *testing.T){
 	assert.Equal(t, true, ok1)
 	assert.Equal(t, true, ok2)
 
-	// set ttl == 0, using the MaxTTL
+	// set ttl == 0, never expired
 	c.Set("k1", "v1", 0)
 	c.Set("k2", "v2", 0)
 	c.Wait()
   val, ok1 = c.Get("k1")
 	ttl, ok2 = c.GetTTL("k1")
-	assert.Equal(t, "v1", val)
-	assert.Equal(t, true, ttl > 0)
-	assert.Equal(t, true, ttl < time.Second * 3)
 	assert.Equal(t, true, ok1)
 	assert.Equal(t, true, ok2)
+	assert.Equal(t, "v1", val)
+	assert.Equal(t, time.Duration(0), ttl)
+
   val, ok1 = c.Get("k2")
 	ttl, ok2 = c.GetTTL("k2")
 	assert.Equal(t, "v2", val)
-	assert.Equal(t, true, ttl > 0)
-	assert.Equal(t, true, ttl < time.Second * 3)
 	assert.Equal(t, true, ok1)
 	assert.Equal(t, true, ok2)
+	assert.Equal(t, time.Duration(0), ttl)
 
 	c.Clear()
-  c = ecache.NewMemCache(
+  c = ecache.NewMemCache[string](
 		ecache.MemCacheOpts[string]{
-		  TTL        : time.Second * 3,
+		  DfTTL      : time.Second * 3,
 			MaxTTL     : time.Second * 2,   // MaxTTL should take controll
 			Statistics : true,
 			IgnoreInternalCost: true,
@@ -259,7 +258,7 @@ func TestMemCacheMaxTTL(t *testing.T){
 }
 
 func TestMemCacheMaxCost(t *testing.T){
-  c := ecache.NewMemCache(
+  c := ecache.NewMemCache[string](
 		ecache.MemCacheOpts[string]{
 			MaxCost    : 10,                   // 
 			Statistics : true,
@@ -297,7 +296,7 @@ func TestMemCacheMaxCost(t *testing.T){
 	for _, i := range inputs {
 		_, ok := c.Get(i.Name)
 		if ok == false {
-			t.Logf("%s has been evicted ", i.Name )
+			t.Logf("%s has been deleted", i.Name )
 		} else {
 			founds++
 		}
@@ -315,7 +314,7 @@ func TestMemCacheMaxCost(t *testing.T){
 	// -------------------------------
 	// test rejecting
 	// 
-	c = ecache.NewMemCache(
+	c = ecache.NewMemCache[string](
 		ecache.MemCacheOpts[string]{
 			MaxCost    : 10,                   // 
 			Statistics : true,
@@ -336,7 +335,7 @@ func TestMemCacheMaxCost(t *testing.T){
 	for _, i := range inputs {
 		_, ok := c.Get(i.Name)
 		if ok == false {
-			t.Logf("%s has been evicted ", i.Name )
+			t.Logf("%s has been deleted ", i.Name )
 		} else {
 			founds++
 		}
@@ -345,7 +344,7 @@ func TestMemCacheMaxCost(t *testing.T){
 }
 
 func TestMemCacheAutoRerent(t *testing.T){
-  c := ecache.NewMemCache(
+  c := ecache.NewMemCache[string](
 		ecache.MemCacheOpts[string]{
 			MaxTTL     : time.Second * 2,
 			Statistics : true,
@@ -383,7 +382,7 @@ func TestMemCacheAutoRerent(t *testing.T){
 	t3, _ := c.GetTTL("k3")
 	assert.Equal(t, "v3", v3)
 	assert.Equal(t, true, t3 > time.Second * 0)
-	assert.Equal(t, true, t3 < time.Second * 1)
+	assert.Equal(t, true, t3 < time.Second * 2)
 
 	v4, _ := c.Get("k4")
 	t4, _ := c.GetTTL("k4")
@@ -394,16 +393,15 @@ func TestMemCacheAutoRerent(t *testing.T){
 
 func TestMemCacheOnEvict(t *testing.T){
 
-	evicted := 0
+	deleted := 0
 
-  c := ecache.NewMemCache(
+  c := ecache.NewMemCache[string](
 		ecache.MemCacheOpts[string]{
 			MaxCost    : 10,
 			Statistics : true,
 			IgnoreInternalCost: true,
-			OnEvict    : func(val string){
-				//t.Logf("%s evicted\n", val)
-				evicted += 1
+			OnDelete    : func(val any){
+				deleted += 1
 			},
 		},
 	)
@@ -415,6 +413,6 @@ func TestMemCacheOnEvict(t *testing.T){
 	}
 	c.Wait()
 
-	t.Logf("evicted %d\n", evicted)
-	assert.Equal(t, 990, evicted)
+	t.Logf("evicted %d\n", deleted)
+	assert.Equal(t, 990, deleted)
 }
