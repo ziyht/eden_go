@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/huandu/skiplist"
-	"github.com/zhangyunhao116/fastrand"
 	"github.com/zhangyunhao116/skipset"
+	"github.com/ziyht/eden_go/erand"
 	cst "golang.org/x/exp/constraints"
 )
 
@@ -24,6 +24,8 @@ type anyskipset[T any] interface {
 	Len() int
 }
 
+// go test -benchmem -run=^$ -bench ^BenchmarkInt64$ github.com/ziyht/eden_go/eds/esl -v -cpu=16
+// go test -benchmem -run=^$ -bench ^BenchmarkInt64$ github.com/ziyht/eden_go/eds/esl -v -cpu=16 -benchtime=1000000x
 func BenchmarkInt64(b *testing.B) {
 	var all []benchTask[int64]
 
@@ -50,7 +52,10 @@ func BenchmarkInt64(b *testing.B) {
 	// 		return newHuanduSkipListInt64[int64]()
 	// 	}})
 
-	rng := fastrand.Int63
+	b.SetParallelism(1)
+
+	rng := erand.Int63
+
 	benchAdd(b, rng, all)
 	bench30Add70Contains(b, rng, all)
 	bench1Remove9Add90Contains(b, rng, all)
@@ -78,7 +83,7 @@ func bench30Add70Contains[T any](b *testing.B, rng func() T, benchTasks []benchT
 			b.ResetTimer()
 			b.RunParallel(func(pb *testing.PB) {
 				for pb.Next() {
-					u := fastrand.Uint32n(10)
+					u := erand.Uint32n(10)
 					if u < 3 {
 						s.Add(rng())
 					} else {
@@ -97,7 +102,7 @@ func bench1Remove9Add90Contains[T any](b *testing.B, rng func() T, benchTasks []
 			b.ResetTimer()
 			b.RunParallel(func(pb *testing.PB) {
 				for pb.Next() {
-					u := fastrand.Uint32n(100)
+					u := erand.Uint32n(100)
 					if u < 9 {
 						s.Add(rng())
 					} else if u == 10 {
@@ -118,7 +123,7 @@ func bench1Range9Remove90Add900Contains[T any](b *testing.B, rng func() T, bench
 			b.ResetTimer()
 			b.RunParallel(func(pb *testing.PB) {
 				for pb.Next() {
-					u := fastrand.Uint32n(1000)
+					u := erand.Uint32n(1000)
 					if u == 0 {
 						s.Range(func(score T) bool {
 							return true

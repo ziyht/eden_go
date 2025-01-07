@@ -10,13 +10,10 @@ import (
 
 // ESL represents a set based on skip list.
 
-
-type Node[K cst.Ordered, V any] struct {
+type meta struct {
+	mu    sync.Mutex
 	flags bitFlag
 	level uint32
-	mu    sync.Mutex
-	next  opArray
-	elem[K, V]
 }
 
 type elem[K cst.Ordered, V any] struct {
@@ -24,26 +21,55 @@ type elem[K cst.Ordered, V any] struct {
 	Val V
 }
 
-func newHead[K cst.Ordered, V any](level int) *Node[K, V] {
-	n := &Node[K, V]{
-		level: uint32(level),
-	}
-	if level > op1 {
-		n.next.extra = new([op2]unsafe.Pointer)
-	}
+type Node[K cst.Ordered, V any] struct {
+	meta
+	elem[K, V]
+	next opArray
+}
+
+func newHead[K cst.Ordered, V any](level int) Node[K, V] {
+	n := Node[K, V]{}
+	n.level = uint32(level)
 	n.flags.SetTrue(fullyLinked)
 	return n
 }
 
 func newEslNode[K cst.Ordered, V any](key K, val V, level int) *Node[K, V] {
-	n := &Node[K, V]{
-		level: uint32(level),
-		elem:  elem[K, V]{key: key, Val: val},
+	switch level{
+		case  1: n := struct{ meta; elem[K, V]; next [ 1]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case  2: n := struct{ meta; elem[K, V]; next [ 2]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case  3: n := struct{ meta; elem[K, V]; next [ 3]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case  4: n := struct{ meta; elem[K, V]; next [ 4]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case  5: n := struct{ meta; elem[K, V]; next [ 5]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case  6: n := struct{ meta; elem[K, V]; next [ 6]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case  7: n := struct{ meta; elem[K, V]; next [ 7]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case  8: n := struct{ meta; elem[K, V]; next [ 8]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case  9: n := struct{ meta; elem[K, V]; next [ 9]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case 10: n := struct{ meta; elem[K, V]; next [10]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case 11: n := struct{ meta; elem[K, V]; next [11]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case 12: n := struct{ meta; elem[K, V]; next [12]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case 13: n := struct{ meta; elem[K, V]; next [13]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case 14: n := struct{ meta; elem[K, V]; next [14]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case 15: n := struct{ meta; elem[K, V]; next [15]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case 16: n := struct{ meta; elem[K, V]; next [16]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case 17: n := struct{ meta; elem[K, V]; next [17]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case 18: n := struct{ meta; elem[K, V]; next [18]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case 19: n := struct{ meta; elem[K, V]; next [19]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case 20: n := struct{ meta; elem[K, V]; next [20]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case 21: n := struct{ meta; elem[K, V]; next [21]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case 22: n := struct{ meta; elem[K, V]; next [22]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case 23: n := struct{ meta; elem[K, V]; next [23]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case 24: n := struct{ meta; elem[K, V]; next [24]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case 25: n := struct{ meta; elem[K, V]; next [25]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case 26: n := struct{ meta; elem[K, V]; next [26]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case 27: n := struct{ meta; elem[K, V]; next [27]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case 28: n := struct{ meta; elem[K, V]; next [28]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case 29: n := struct{ meta; elem[K, V]; next [29]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case 30: n := struct{ meta; elem[K, V]; next [30]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case 31: n := struct{ meta; elem[K, V]; next [31]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		case 32: n := struct{ meta; elem[K, V]; next [32]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		default: n := struct{ meta; elem[K, V]; next [_MAX_LEVEL]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
 	}
-	if level > op1 {
-		n.next.extra = new([op2]unsafe.Pointer)
-	}
-	return n
 }
 
 func (n *Node[K, V]) Next() *Node[K, V] {
@@ -74,7 +100,12 @@ func (n *Node[K, V]) atomicStoreNext(layer int, next *Node[K, V]) {
 // The returned preds and succs always satisfy preds[i] > value >= succs[i].
 func (s *ESL[K, V]) findNodeRemove(key K, preds *[_MAX_LEVEL]*Node[K, V], succs *[_MAX_LEVEL]*Node[K, V]) int {
 	// lFound represents the index of the first layer at which it found a node.
-	lFound, x := -1, s.header
+	lFound, x := -1, s.tail
+	if x != nil && x.key < key {			// not exist
+		return lFound
+	}
+
+	x = &s.header
 	for i := int(atomic.LoadUint64(&s.level)) - 1; i >= 0; i-- {
 		succ := x.atomicLoadNext(i)
 		for succ != nil && (succ.key < key) {
@@ -95,7 +126,7 @@ func (s *ESL[K, V]) findNodeRemove(key K, preds *[_MAX_LEVEL]*Node[K, V], succs 
 // findNodeAdd takes a key and two maximal-height arrays then searches exactly as in a sequential skip-set.
 // The returned preds and succs always satisfy preds[i] > value >= succs[i].
 func (s *ESL[K, V]) findNodeAdd(key K, preds *[_MAX_LEVEL]*Node[K, V], succs *[_MAX_LEVEL]*Node[K, V]) int {
-	x := s.header
+	x := &s.header
 	for i := int(atomic.LoadUint64(&s.level)) - 1; i >= 0; i-- {
 		succ := x.atomicLoadNext(i)
 		for succ != nil && (succ.key < key) {
@@ -183,6 +214,11 @@ func (s *ESL[K, V]) add(key K, val V, set bool) (prev V, replaced bool) {
 			nn.storeNext(layer, succs[layer])
 			preds[layer].atomicStoreNext(layer, nn)
 		}
+		if s.tail == nil {
+			s.tail = nn
+		} else if nn.key >=s.tail.key {
+			s.tail = nn
+		}
 		nn.flags.SetTrue(fullyLinked)
 		unlockOrdered(preds, highestLocked)
 		atomic.AddInt64(&s.length, 1)
@@ -209,26 +245,14 @@ func (s *ESL[K, V]) randomLevel() int {
 	return level
 }
 
-// Contains checks if the value is in the skip set.
-func (s *ESL[K, V]) Contains(key K) bool {
-	x := s.header
-	for i := int(atomic.LoadUint64(&s.level)) - 1; i >= 0; i-- {
-		nex := x.atomicLoadNext(i)
-		for nex != nil && (nex.key < key) {
-			x = nex
-			nex = x.atomicLoadNext(i)
-		}
-
-		// Check if the value already in the skip list.
-		if nex != nil && nex.key == key {
-			return nex.flags.Check(fullyLinked|deleting, fullyLinked)
-		}
-	}
-	return false
-}
-
 func (s *ESL[K, V]) find(key K) (*Node[K, V]) {
-	x := s.header
+	x := s.tail
+	if x != nil{
+		if x.key == key { return x}
+		if x.key <  key { return nil   }
+	}
+
+	x = &s.header
 	for i := int(atomic.LoadUint64(&s.level)) - 1; i >= 0; i-- {
 		nex := x.atomicLoadNext(i)
 		for nex != nil && (nex.key < key) {
@@ -256,7 +280,7 @@ func (s *ESL[K, V]) Remove(key K) bool {
 	for {
 		lFound := s.findNodeRemove(key, &preds, &succs)
 		if isDeleting || // this process deleting this node or we can find this node in the skip list
-			lFound != -1 && succs[lFound].flags.Check(fullyLinked|deleting, fullyLinked) && (int(succs[lFound].level)-1) == lFound {
+				lFound != -1 && succs[lFound].flags.Check(fullyLinked|deleting, fullyLinked) && (int(succs[lFound].level)-1) == lFound {
 			if !isDeleting { // we don't deleting this node for now
 				nodeToRemove = succs[lFound]
 				topLayer = lFound
@@ -298,6 +322,16 @@ func (s *ESL[K, V]) Remove(key K) bool {
 				// Now we own the nodeToRemove, no other goroutine will modify it.
 				// So we don't need nodeToRemove.loadNext
 				preds[i].atomicStoreNext(i, nodeToRemove.loadNext(i))
+			}
+			if nodeToRemove.Next() == nil {
+				s.tail = preds[0]
+				if s.tail == &s.header {
+					s.tail = nil
+				}
+			}
+
+			for s.level > 1 && s.header.next.base[s.level-1] == nil {
+					s.level--
 			}
 			nodeToRemove.mu.Unlock()
 			unlockOrdered(preds, highestLocked)
@@ -344,7 +378,7 @@ func (s *ESL[K, V]) traverse(f func(key K, val V) bool) {
 // If f returns false, range stops the iteration.
 func (s *ESL[K, V]) traverseFrom(start K, f func(key K, val V) bool) {
 	var (
-		x   = s.header
+		x   = &s.header
 		nex *Node[K, V]
 	)
 	for i := int(atomic.LoadUint64(&s.level)) - 1; i >= 0; i-- {
@@ -375,7 +409,7 @@ func (s *ESL[K, V]) traverseFrom(start K, f func(key K, val V) bool) {
 // If f returns false, range stops the iteration.
 func (s *ESL[K, V]) traverseFromTo(start K, end K, f func(key K, val V) bool) {
 	var (
-		x   = s.header
+		x   = &s.header
 		nex *Node[K, V]
 	)
 	for i := int(atomic.LoadUint64(&s.level)) - 1; i >= 0; i-- {
@@ -407,7 +441,7 @@ func (s *ESL[K, V]) traverseFromTo(start K, end K, f func(key K, val V) bool) {
 
 func (s *ESL[K, V]) traverseIn(start K, end K, f func(key K, val V) bool) {
 	var (
-		x   = s.header
+		x   = &s.header
 		nex *Node[K, V]
 	)
 	for i := int(atomic.LoadUint64(&s.level)) - 1; i >= 0; i-- {

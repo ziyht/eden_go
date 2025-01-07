@@ -13,20 +13,22 @@ const (
 	_MAX_LEVEL  = 16
 	_P          = 0.25
 	_INIT_LEVEL = 3
-	_VER        = "1.0.0"
+	_VER        = "1.1.0"
 )
 
 type ESL[K cst.Ordered, V any] struct {
 	length   int64
 	level    uint64           // cur highest level, it will changed in operations.
-	header   *Node[K, V]
+	header   Node[K, V]
+	tail     *Node[K, V]
 }
 
 func New[K cst.Ordered, V any]() *ESL[K, V] {
-	return &ESL[K, V]{
-		header: newHead[K, V](_MAX_LEVEL),
+	out := &ESL[K, V]{
 		level:  _INIT_LEVEL,
 	}
+	out.header.flags.SetTrue(fullyLinked)
+	return out
 }
 
 func (s *ESL[K, V]) Add(key K, val V) bool {
@@ -96,15 +98,19 @@ func (s *ESL[K, V]) Find(key K) (*Node[K, V]) {
 	return s.find(key)
 }
 
+// Contains checks if the value is in the skip set.
+func (s *ESL[K, V]) Contains(key K) bool {
+	return s.find(key) != nil
+}
+
 // First returns the first node in the list.
 func (s *ESL[K, V]) First() (*Node[K, V]) {
 	return s.header.Next()
 }
 
-// TODO
 // Last returns the last node in the list. 
 func (s *ESL[K, V]) Last() (*Node[K, V]) {
-	return nil
+	return s.tail
 }
 
 // IsEmpty returns true if the list is empty.
@@ -124,7 +130,8 @@ func (s *ESL[K, V]) Len() int64 {
 
 // Clear clears the list.
 func (s *ESL[K, V]) Clear() {
-	s.header = newHead[K, V](_MAX_LEVEL)
+	s.header.next = opArray{}
+	s.tail = nil
 	s.level = _INIT_LEVEL
 	atomic.StoreInt64(&s.length, 0)
 }

@@ -38,6 +38,7 @@ func TestBasic(t *testing.T) {
 	assert.True(t, sl.Contains(2))
 	assert.True(t, sl.Contains(3))
 	assert.False(t, sl.Contains(4))
+	sl.Del(4)
 	sl.Del(2)
 	assert.Equal(t, int64(2), sl.Len())
 	assert.False(t, sl.Contains(2))
@@ -103,18 +104,52 @@ func TestSet(t *testing.T) {
 
 func TestPop(t *testing.T) {
 
-	rb := New[int, int]()
+	sl := New[int, int]()
 	cnt := 100
 	for i := 0; i < cnt; i ++ {
-		rb.Add(i, i + 1)
+		sl.Add(i, i + 1)
 	}
 
 	for i := 0; i < 50; i ++ {
-		node := rb.PopFirst()
+		node := sl.PopFirst()
 		assert.Equal(t, node.Val, i + 1)
 	}
 
-	assert.Equal(t, int64(50), rb.Size())
+	assert.Equal(t, int64(50), sl.Size())
+}
+
+func TestTail(t *testing.T) {
+	sl := New[int, int]()
+
+	for i := 0; i < 10000; i++ {
+		sl.Add(i, i)
+		assert.Equal(t, i, sl.Last().Val)
+	}
+	assert.Equal(t, int64(10000), sl.Size())
+
+	for i := 10000; i > 0; i-- {
+		ok := sl.Del(i-1)
+		assert.True(t, ok)
+
+		if i > 1 {
+			assert.Equal(t, i-2, sl.Last().Val)
+		} else {
+			assert.Nil(t, sl.Last())
+		}
+	}
+
+	sl.Clear()
+	sl.Add(10001, 10001)
+	for i := 0; i < 10000; i++ {
+		sl.Add(i, i)
+		assert.Equal(t, 10001, sl.Last().Val)
+	}
+	for i := 10000; i > 0; i-- {
+		ok := sl.Del(i-1)
+		assert.True(t, ok)
+		assert.Equal(t, 10001, sl.Last().Val)
+	}
+	assert.Equal(t, int64(1), sl.Len())
 }
 
 func TestRange(t *testing.T) {
