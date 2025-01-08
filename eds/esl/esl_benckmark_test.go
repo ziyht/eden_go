@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/huandu/skiplist"
+	//"github.com/huandu/skiplist"
 	"github.com/zhangyunhao116/skipset"
 	"github.com/ziyht/eden_go/erand"
 	cst "golang.org/x/exp/constraints"
@@ -179,42 +179,42 @@ func (m *benckESL[T]) Len() int {
 	return int(m.ESL.Len())
 }
 
-//
-// huanduSkipList
-// 
-type huanduSkipList [T any] struct {
-	*skiplist.SkipList
-}
+// //
+// // huanduSkipList
+// //
+// type huanduSkipList [T any] struct {
+// 	*skiplist.SkipList
+// }
 
-func newHuanduSkipListInt64[T any] () *huanduSkipList[T] {
-	return &huanduSkipList[T]{skiplist.New(skiplist.Int64)}
-}
+// func newHuanduSkipListInt64[T any] () *huanduSkipList[T] {
+// 	return &huanduSkipList[T]{skiplist.New(skiplist.Int64)}
+// }
 
-func (m *huanduSkipList[T]) Add(x T) bool {
-	m.SkipList.Set(x, 0)
-	return true
-}
+// func (m *huanduSkipList[T]) Add(x T) bool {
+// 	m.SkipList.Set(x, 0)
+// 	return true
+// }
 
-func (m *huanduSkipList[T]) Contains(x T) bool {
-	ok := m.SkipList.Find(x)
-	return ok != nil
-}
+// func (m *huanduSkipList[T]) Contains(x T) bool {
+// 	ok := m.SkipList.Find(x)
+// 	return ok != nil
+// }
 
-func (m *huanduSkipList[T]) Remove(x T) bool {
-	return m.SkipList.Remove(x) != nil
-}
+// func (m *huanduSkipList[T]) Remove(x T) bool {
+// 	return m.SkipList.Remove(x) != nil
+// }
 
-func (m *huanduSkipList[T]) Range(f func(value T) bool) {
-	panic("TODO")
-}
+// func (m *huanduSkipList[T]) Range(f func(value T) bool) {
+// 	panic("TODO")
+// }
 
-func (m *huanduSkipList[T]) RangeFrom(start T, f func(value T) bool) {
-	panic("TODO")
-}
+// func (m *huanduSkipList[T]) RangeFrom(start T, f func(value T) bool) {
+// 	panic("TODO")
+// }
 
-func (m *huanduSkipList[T]) Len() int {
-	return m.SkipList.Len()
-}
+// func (m *huanduSkipList[T]) Len() int {
+// 	return m.SkipList.Len()
+// }
 
 //
 // anySyncMap

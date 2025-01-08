@@ -24,14 +24,7 @@ type elem[K cst.Ordered, V any] struct {
 type Node[K cst.Ordered, V any] struct {
 	meta
 	elem[K, V]
-	next opArray
-}
-
-func newHead[K cst.Ordered, V any](level int) Node[K, V] {
-	n := Node[K, V]{}
-	n.level = uint32(level)
-	n.flags.SetTrue(fullyLinked)
-	return n
+	next [_MAX_LEVEL]unsafe.Pointer
 }
 
 func newEslNode[K cst.Ordered, V any](key K, val V, level int) *Node[K, V] {
@@ -73,27 +66,27 @@ func newEslNode[K cst.Ordered, V any](key K, val V, level int) *Node[K, V] {
 }
 
 func (n *Node[K, V]) Next() *Node[K, V] {
-	return (*Node[K, V])(n.next.load0())
+	return (*Node[K, V])(n.next[0])
 }
 
 func (n *Node[K, V]) atomicNext() *Node[K, V] {
-	return (*Node[K, V])(n.next.atomicLoad0())
+	return (*Node[K, V])(atomic.LoadPointer(&n.next[0]))
 }
 
 func (n *Node[K, V]) loadNext(layer int) *Node[K, V] {
-	return (*Node[K, V])(n.next.load(layer))
-}
-
-func (n *Node[K, V]) storeNext(layer int, next *Node[K, V]) {
-	n.next.store(layer, unsafe.Pointer(next))
+	return (*Node[K, V])(n.next[layer])
 }
 
 func (n *Node[K, V]) atomicLoadNext(layer int) *Node[K, V] {
-	return (*Node[K, V])(n.next.atomicLoad(layer))
+	return (*Node[K, V])(atomic.LoadPointer(&n.next[layer]))
+}
+
+func (n *Node[K, V]) storeNext(layer int, next *Node[K, V]) {
+	n.next[layer] = unsafe.Pointer(next)
 }
 
 func (n *Node[K, V]) atomicStoreNext(layer int, next *Node[K, V]) {
-	n.next.atomicStore(layer, unsafe.Pointer(next))
+	atomic.StorePointer(&n.next[layer], unsafe.Pointer(next))
 }
 
 // findNodeRemove takes a value and two maximal-height arrays then searches exactly as in a sequential skip-list.
@@ -238,6 +231,12 @@ func (s *ESL[K, V]) randomLevel() int {
 		if level <= int(hl) {
 			break
 		}
+
+		// Can only increase 2 level at a time
+		if level > int(hl + 2) {
+			level = int(hl + 2)
+		}
+
 		if atomic.CompareAndSwapUint64(&s.level, hl, uint64(level)) {
 			break
 		}
@@ -330,8 +329,9 @@ func (s *ESL[K, V]) Remove(key K) bool {
 				}
 			}
 
-			for s.level > 1 && s.header.next.base[s.level-1] == nil {
-					s.level--
+			// Down level if possible.
+			for s.level > _INIT_LEVEL && s.header.next[s.level-1] == nil {
+				s.level--
 			}
 			nodeToRemove.mu.Unlock()
 			unlockOrdered(preds, highestLocked)

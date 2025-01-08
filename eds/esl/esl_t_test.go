@@ -1,6 +1,7 @@
 package esl
 
 import (
+	"fmt"
 	"math/rand"
 	"testing"
 
@@ -373,4 +374,39 @@ func TestKeys(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		assert.Equal(t, i, vals[i])
 	}
+}
+
+func TestRandomLevel(t *testing.T) {
+	/*
+	01: 0.75,
+	02: 0.1875,
+	03: 0.046875,
+	04: 0.01171875,
+	05: 0.0029296875,
+	06: 0.000732421875,
+	07: 0.00018310546875,
+	08: 0.0000457763671875,
+	09: 0.000011444091796875,
+	10: 0.00000286102294921875,
+	11: 0.0000007152557373046875,
+	12: 0.00000017881393432617188,
+	13: 0.00000004470348358154297,
+	14: 0.000000011175870895385742,
+	15: 0.0000000027939677238464354,
+	16: 0.0000000006984919309616089
+	*/
+
+	sl := New[int, int64]()
+
+	total := 100000000
+
+	for i := 0; i < total; i++ {
+		level := randomLevel()
+		sl.Set(level, sl.Val(level) + 1)
+	}
+
+	sl.Range(func(k int, v int64) bool {
+		fmt.Printf("%2d: \t%8d \t%11.8f%%\n", k, v, float64(v)/float64(total)*100)
+		return true
+	})
 }

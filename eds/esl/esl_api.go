@@ -2,6 +2,8 @@ package esl
 
 import (
 	"sync/atomic"
+	"unsafe"
+
 	cst "golang.org/x/exp/constraints"
 )
 
@@ -130,8 +132,11 @@ func (s *ESL[K, V]) Len() int64 {
 
 // Clear clears the list.
 func (s *ESL[K, V]) Clear() {
-	s.header.next = opArray{}
-	s.tail = nil
+	s.header.mu.Lock()
+	defer s.header.mu.Unlock()
+
+	s.header.next = [_MAX_LEVEL]unsafe.Pointer{}
+	s.tail  = nil
 	s.level = _INIT_LEVEL
 	atomic.StoreInt64(&s.length, 0)
 }
