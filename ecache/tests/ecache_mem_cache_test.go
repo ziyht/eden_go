@@ -400,7 +400,7 @@ func TestMemCacheOnEvict(t *testing.T){
 			MaxCost    : 10,
 			Statistics : true,
 			IgnoreInternalCost: true,
-			OnDelete    : func(val any){
+			OnDelete    : func(val string){
 				deleted += 1
 			},
 		},

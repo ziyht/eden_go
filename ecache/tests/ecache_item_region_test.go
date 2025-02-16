@@ -66,7 +66,7 @@ func ExecTestItemRegionDsn(t *testing.T, dsn string){
 }
 
 func ExecTestL1_Basic(t *testing.T, dsn string){
-	c, err := ecache.NewDBCache(ecache.DBOpts{Dsn: dsn} )
+	c, err := ecache.NewDBCache(ecache.DBCacheOpts{Dsn: dsn} )
 	assert.Equal(t, nil, err)
 
 	inputs := []*myItem{
@@ -155,7 +155,7 @@ func ExecTestL1_Basic(t *testing.T, dsn string){
 }
 
 func ExecTestL1_MakeTypedRegion(t *testing.T, dsn string){
-	c, err := ecache.NewDBCache(ecache.DBOpts{Dsn: dsn} )
+	c, err := ecache.NewDBCache(ecache.DBCacheOpts{Dsn: dsn} )
 	assert.Equal(t, nil, err)
 
 	inputs := []*myItem{
@@ -233,7 +233,7 @@ func ExecTestL1_MakeTypedRegion(t *testing.T, dsn string){
 }
 
 func ExecTestL1_GetFromMem(t *testing.T, dsn string){
-	c, err := ecache.NewDBCache(ecache.DBOpts{Dsn: dsn} )
+	c, err := ecache.NewDBCache(ecache.DBCacheOpts{Dsn: dsn} )
 	assert.Equal(t, nil, err)
 
 	inputs := []*myItem{
@@ -319,7 +319,7 @@ func ExecTestL1_GetFromMem(t *testing.T, dsn string){
 }
 
 func ExecTestL1_GetFromMemAfterReopen(t *testing.T, dsn string){
-	c, err := ecache.NewDBCache(ecache.DBOpts{Dsn: dsn} )
+	c, err := ecache.NewDBCache(ecache.DBCacheOpts{Dsn: dsn} )
 	assert.Equal(t, nil, err)
 
 	inputs := []*myItem{
@@ -336,7 +336,7 @@ func ExecTestL1_GetFromMemAfterReopen(t *testing.T, dsn string){
 
 	err = c.Close()
 	assert.Equal(t, nil, err)
-	c, err = ecache.NewDBCache(ecache.DBOpts{Dsn: dsn} )
+	c, err = ecache.NewDBCache(ecache.DBCacheOpts{Dsn: dsn} )
 	assert.Equal(t, nil, err)
 	l10 = ecache.MakeTypedItemRegion[*myItem](c.NewRegion(""))  ; l10.SetDefaultTTL(time.Second*2)
 	l10.EnableMemCache(10, time.Second * 2)

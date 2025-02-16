@@ -24,7 +24,7 @@ func ExecRegionTestForDsn(t *testing.T, dsn string){
 
 
 func ExecTestRegion_Basic(t *testing.T, dsn string){
-	c, err := ecache.NewDBCache(ecache.DBOpts{Dsn: dsn} )
+	c, err := ecache.NewDBCache(ecache.DBCacheOpts{Dsn: dsn} )
 	assert.Equal(t, nil, err)
 	r := c.DfRegion()
 	r1 := c.NewRegion("bb")  
@@ -113,7 +113,7 @@ func ExecTestRegion_Basic(t *testing.T, dsn string){
 }
 
 func ExecTestRegion_Truncate(t *testing.T, dsn string){
-	c, err := ecache.NewDBCache(ecache.DBOpts{Dsn: dsn} )
+	c, err := ecache.NewDBCache(ecache.DBCacheOpts{Dsn: dsn} )
 	assert.Equal(t, nil, err)
 	r := c.DfRegion()
 	r1 := c.NewRegion("bb")  
@@ -211,7 +211,7 @@ func ExecTestRegion_Truncate(t *testing.T, dsn string){
 }
 
 func ExecTestRegion_SubRegion(t *testing.T, dsn string){
-	c, err := ecache.NewDBCache(ecache.DBOpts{Dsn: dsn} )
+	c, err := ecache.NewDBCache(ecache.DBCacheOpts{Dsn: dsn} )
 	assert.Equal(t, nil, err)
 
 	r := c.DfRegion()
@@ -287,7 +287,7 @@ func __subRegion2_check_helper(t *testing.T, r *ecache.Region, len_ int){
 }
 
 func ExecTestRegion_SubRegion2(t *testing.T, dsn string){
-	c, err := ecache.NewDBCache(ecache.DBOpts{Dsn: dsn} )
+	c, err := ecache.NewDBCache(ecache.DBCacheOpts{Dsn: dsn} )
 	assert.Equal(t, nil, err)
 
 	r := c.DfRegion()
@@ -413,7 +413,7 @@ func ExecTestRegion_SubRegion2(t *testing.T, dsn string){
 }
 
 func ExecTestRegion_SubRegion3(t *testing.T, dsn string){
-	c, err := ecache.NewDBCache(ecache.DBOpts{Dsn: dsn} )
+	c, err := ecache.NewDBCache(ecache.DBCacheOpts{Dsn: dsn} )
 	assert.Equal(t, nil, err)
 
 	r1 := c.NewRegion("rr")

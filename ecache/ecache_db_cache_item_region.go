@@ -17,7 +17,7 @@ type ItemRegion[V Item] struct {
   db       *db
 	meta     rMeta
 	ttl      time.Duration
-	mem      *MemCache[V]
+	mem      *MemCache[[]byte, V]
 	Metrics  *Metrics
 }
 
@@ -42,7 +42,7 @@ func (r *ItemRegion[T])EnableMemCache(maxCount int64, maxTTL time.Duration) {
 		IgnoreInternalCost: true,
 		Statistics : true,
 	}
-	r.mem = newMemCache[T](opts)
+	r.mem = newMemCache[[]byte, T](opts)
 	r.Metrics = r.mem.Metrics
 }
 

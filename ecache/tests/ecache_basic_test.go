@@ -34,7 +34,7 @@ func ExecBasicTestForDsn(t *testing.T, dsn string){
 }
 
 func ExecTestBasic(t *testing.T, dsn string){
-	c, err := ecache.NewDBCache(ecache.DBOpts{Dsn: dsn} )
+	c, err := ecache.NewDBCache(ecache.DBCacheOpts{Dsn: dsn} )
 	assert.Equal(t, nil, err)
 
 	defer c.Close()
@@ -76,7 +76,7 @@ func ExecTestBasic(t *testing.T, dsn string){
 }
 
 func ExecTestVal(t *testing.T, dsn string){
-	c, err := ecache.NewDBCache(ecache.DBOpts{Dsn: dsn} )
+	c, err := ecache.NewDBCache(ecache.DBCacheOpts{Dsn: dsn} )
 	assert.Equal(t, nil, err)
 
 	defer c.Close()
@@ -137,7 +137,7 @@ func ExecTestVal(t *testing.T, dsn string){
 }
 
 func ExecTestTTL(t *testing.T, dsn string){
-	c, err := ecache.NewDBCache(ecache.DBOpts{Dsn: dsn} )
+	c, err := ecache.NewDBCache(ecache.DBCacheOpts{Dsn: dsn} )
 	assert.Equal(t, nil, err)
 
 	defer c.Close()
@@ -163,7 +163,7 @@ func ExecTestTTL(t *testing.T, dsn string){
 }
 
 func ExecTestClose(t *testing.T, dsn string){
-	c, err := ecache.NewDBCache(ecache.DBOpts{Dsn: dsn} )
+	c, err := ecache.NewDBCache(ecache.DBCacheOpts{Dsn: dsn} )
 	assert.Equal(t, nil, err)
 
 	r := c.DfRegion()
@@ -173,7 +173,7 @@ func ExecTestClose(t *testing.T, dsn string){
 	r.Set([]byte("key2"), []byte("value2"), time.Second)
 	c.Close()
 
-	c, err = ecache.NewDBCache(ecache.DBOpts{Dsn: dsn} )
+	c, err = ecache.NewDBCache(ecache.DBCacheOpts{Dsn: dsn} )
 	assert.Equal(t, nil, err)
 	defer c.Close()
 	defer c.Truncate()
@@ -194,7 +194,7 @@ func ExecTestClose(t *testing.T, dsn string){
 }
 
 func ExecTestSets(t *testing.T, dsn string){
-	c, err := ecache.NewDBCache(ecache.DBOpts{Dsn: dsn} )
+	c, err := ecache.NewDBCache(ecache.DBCacheOpts{Dsn: dsn} )
 	assert.Equal(t, nil, err)
 
 	defer c.Close()
@@ -225,7 +225,7 @@ type item struct {
 }
 
 func ExecTestIF_DoForKeys(t *testing.T, dsn string){
-	c, err := ecache.NewDBCache(ecache.DBOpts{Dsn: dsn} )
+	c, err := ecache.NewDBCache(ecache.DBCacheOpts{Dsn: dsn} )
 	assert.Equal(t, nil, err)
 
 	r := c.DfRegion()
@@ -266,7 +266,7 @@ func ExecTestIF_DoForKeys(t *testing.T, dsn string){
 }
 
 func ExecTestIF_DoForAll(t *testing.T, dsn string){
-	c, err := ecache.NewDBCache(ecache.DBOpts{Dsn: dsn} )
+	c, err := ecache.NewDBCache(ecache.DBCacheOpts{Dsn: dsn} )
 	assert.Equal(t, nil, err)
 	r := c.DfRegion()
 

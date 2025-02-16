@@ -58,7 +58,7 @@ func TestNutsDB(t *testing.T){
 }
 
 func ExecTestForDsn(t *testing.T, dsn string){
-	c, err := ecache.NewDBCache(ecache.DBOpts{Dsn: dsn} )
+	c, err := ecache.NewDBCache(ecache.DBCacheOpts{Dsn: dsn} )
 	if !assert.Equal(t, nil, err){
 		return
 	}
@@ -73,7 +73,7 @@ func ExecTestForDsn(t *testing.T, dsn string){
 }
 
 func ExecInsert(t *testing.T, dsn string, cnt int){
-	c, err := ecache.NewDBCache(ecache.DBOpts{Dsn: dsn} )
+	c, err := ecache.NewDBCache(ecache.DBCacheOpts{Dsn: dsn} )
 	assert.Equal(t, nil, err)
 	r := c.DfRegion()
 
@@ -93,7 +93,7 @@ func ExecInsert(t *testing.T, dsn string, cnt int){
 }
 
 func ExecSet512(t *testing.T, dsn string, cnt int){
-	c, err := ecache.NewDBCache(ecache.DBOpts{Dsn: dsn} )
+	c, err := ecache.NewDBCache(ecache.DBCacheOpts{Dsn: dsn} )
 	assert.Equal(t, nil, err)
 	r := c.DfRegion()
 
@@ -113,7 +113,7 @@ func ExecSet512(t *testing.T, dsn string, cnt int){
 }
 
 func ExecSets512(t *testing.T, dsn string, cnt int){
-	c, err := ecache.NewDBCache(ecache.DBOpts{Dsn: dsn} )
+	c, err := ecache.NewDBCache(ecache.DBCacheOpts{Dsn: dsn} )
 	assert.Equal(t, nil, err)
 	r := c.DfRegion()
 

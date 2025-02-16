@@ -47,7 +47,7 @@ func initFromFile(path string) error {
 
 func getDfDBcache() (*DBCache, error) {
 	if dfDbCache == nil {
-		tmp, err := NewDBCache(DBOpts{Dsn: dfCfg().Dsn} )
+		tmp, err := NewDBCache(DBCacheOpts{Dsn: dfCfg().Dsn} )
 		if err != nil {
 			return nil, err
 		}
@@ -71,7 +71,7 @@ func getDBCache(name string)(*DBCache, error){
 		return c, nil
 	}
 
-	c, err := NewDBCache(DBOpts{Dsn: dfCfg().Dsn} )
+	c, err := NewDBCache(DBCacheOpts{Dsn: dfCfg().Dsn} )
 	if err != nil {
 		return nil, fmt.Errorf("NewDBCache for '%s' failed: %s, dsn is: %s", name, err, cfg.Dsn)
 	}

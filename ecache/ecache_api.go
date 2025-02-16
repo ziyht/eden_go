@@ -13,14 +13,14 @@ const (
 	NUTSDB = "nutsdb"
 )
 
-type DBOpts struct {
+type DBCacheOpts struct {
 	Dsn     string   // if set, the other proporty will take no effect, format: <dirvername>:<dir>[?<arg1=val1>[&<arg2=val2>]...]
 	Driver  string   // if not set will using nutsdb in default
 	Dir     string   
   Params  map[string][]string
 }
 
-func NewDBCache(opts DBOpts) (c *DBCache, err error) {
+func NewDBCache(opts DBCacheOpts) (c *DBCache, err error) {
 	db, err := newDB(&opts)
 	if err != nil {
 		return nil, err
@@ -29,6 +29,14 @@ func NewDBCache(opts DBOpts) (c *DBCache, err error) {
 	c = newDBCache(db)
 
 	return
+}
+
+func NewMemCache[K Key, V any](opts ...MemCacheOpts[V]) (*MemCache[K, V]) {
+	if len(opts) > 0 {
+		return newMemCache[K, V](opts[0])
+	}
+
+	return newMemCache[K, V](MemCacheOpts[V]{})
 }
 
 func GenDsn(driver, dir string, params ...map[string][]string) string {
@@ -54,13 +62,7 @@ func GenDsn(driver, dir string, params ...map[string][]string) string {
 	return dsn
 }
 
-func NewMemCache[V any](opts ...MemCacheOpts[V]) (*MemCache[V]) {
-	if len(opts) > 0 {
-		return newMemCache[V](opts[0])
-	}
 
-	return newMemCache[V](MemCacheOpts[V]{})
-}
 
 func MakeTypedItemRegion[T Item](r* Region)(*ItemRegion[T]){
 	return newItemRegion[T](r.db, r.meta.keys)
@@ -93,7 +95,7 @@ func GetDBCacheFromFile(path string, key string)(c *DBCache, err error){
 		return nil, err
 	}
 
-	return NewDBCache(DBOpts{Dsn: cfg.Dsn} )
+	return NewDBCache(DBCacheOpts{Dsn: cfg.Dsn} )
 }
 
 func GetDBCache(name ...string)(c *DBCache, err error){

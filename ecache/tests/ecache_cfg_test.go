@@ -36,8 +36,8 @@ func TestCfgBasic(t *testing.T) {
 }
 
 func TestOptsBasic(t *testing.T){
-	c1, e1 := ecache.NewDBCache(ecache.DBOpts{Dir: "./test_data/cache5"})
-	c2, e2 := ecache.NewDBCache(ecache.DBOpts{Dir: "./test_data/cache6", Driver: ecache.BADGER})
+	c1, e1 := ecache.NewDBCache(ecache.DBCacheOpts{Dir: "./test_data/cache5"})
+	c2, e2 := ecache.NewDBCache(ecache.DBCacheOpts{Dir: "./test_data/cache6", Driver: ecache.BADGER})
 	assert.NoError(t, e1)
 	assert.NoError(t, e2)
 	assert.NotNil(t, c1)

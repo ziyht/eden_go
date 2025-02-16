@@ -13,7 +13,7 @@ type db struct {
 	db  driver.DB
 }
 
-func newDB(opts *DBOpts) (*db, error) {
+func newDB(opts *DBCacheOpts) (*db, error) {
 	if opts.Dsn == "" {
 		opts.Dsn = GenDsn(opts.Driver, opts.Dir, opts.Params)
 	}
