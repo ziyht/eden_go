@@ -19,12 +19,12 @@ type EArr [T comparable] struct {
 	elements []T
 	size     int
 	opcnt    int32
-	mu       esync.RWMutex
+	mu       *esync.ERWMutex
 }
 
 // New instantiates a new earr and adds the passed values, if any, to the earr
 func New [T comparable] (safe ...bool) *EArr[T] {
-	return &EArr[T]{mu: esync.NewRWMutex(safe...)}
+	return &EArr[T]{mu: esync.NewERWMutex(safe...)}
 }
 
 // Add appends a value at the end of the earr
@@ -42,8 +42,8 @@ func (earr *EArr[T]) Add(values ...T) {
 // Get returns the element at index.
 // Second return parameter is true if index is within bounds of the array and array is not empty, otherwise false.
 func (earr *EArr[T]) Get(index int) (e T, ok bool) {
-	earr.mu.Lock()
-	defer earr.mu.Unlock()
+	earr.mu.RLock()
+	defer earr.mu.RUnlock()
 
 	if !earr.withinRange(index) {
 		return
@@ -66,7 +66,7 @@ func (earr *EArr[T]) Del(index int) {
 		var e T
 		earr.elements[index] = e  
 	}
-	                                  
+
 	copy(earr.elements[index:], earr.elements[index+1:earr.size]) // shift to the left by one (slow operation, need ways to optimize this)
 	earr.size--
 
