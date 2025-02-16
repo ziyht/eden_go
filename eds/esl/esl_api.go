@@ -8,14 +8,15 @@ import (
 )
 
 //
+// a non-blocking and thread-safe skip list implementation
 // rebuild from https://github.com/zhangyunhao116/skipset
 //
 
 const (
-	_MAX_LEVEL  = 16
-	_P          = 0.25
-	_INIT_LEVEL = 3
-	_VER        = "1.1.0"
+	MAX_LEVEL  = 16               // max level is based on P, MAX_LEVEL = 64 * P
+	P          = 0.25             // factor to raise node level, must be less than 1, recommended less than 0.5, and 0.25 is a good choice, redis use it
+	INIT_LEVEL = 1                // 1 is ok
+	_VER       = "1.1.0"
 )
 
 type ESL[K cst.Ordered, V any] struct {
@@ -27,7 +28,7 @@ type ESL[K cst.Ordered, V any] struct {
 
 func New[K cst.Ordered, V any]() *ESL[K, V] {
 	out := &ESL[K, V]{
-		level:  _INIT_LEVEL,
+		level:  INIT_LEVEL,
 	}
 	out.header.flags.SetTrue(fullyLinked)
 	return out
@@ -135,9 +136,9 @@ func (s *ESL[K, V]) Clear() {
 	s.header.mu.Lock()
 	defer s.header.mu.Unlock()
 
-	s.header.next = [_MAX_LEVEL]unsafe.Pointer{}
+	s.header.next = [MAX_LEVEL]unsafe.Pointer{}
 	s.tail  = nil
-	s.level = _INIT_LEVEL
+	s.level = INIT_LEVEL
 	atomic.StoreInt64(&s.length, 0)
 }
 

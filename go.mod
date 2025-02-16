@@ -8,14 +8,12 @@ require (
 	github.com/antlabs/gstl v0.0.8
 	github.com/cockroachdb/pebble v0.0.0-20220323190648-7ad3551b2050
 	github.com/dgraph-io/badger/v3 v3.2103.2
-	github.com/dgraph-io/ristretto/v2 v2.0.0-alpha
+	github.com/dgraph-io/ristretto/v2 v2.1.0
 	github.com/emirpasic/gods v1.18.1
 	github.com/fatih/color v1.13.0
-	github.com/huandu/skiplist v1.2.1
 	github.com/satori/go.uuid v1.2.0
 	github.com/spf13/viper v1.3.2
 	github.com/xujiajun/nutsdb v0.10.0
-	github.com/zhangyunhao116/fastrand v0.5.0
 	github.com/zhangyunhao116/skipset v0.13.0
 	go.uber.org/zap v1.21.0
 )
@@ -28,6 +26,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/xujiajun/mmap-go v1.0.1 // indirect
 	github.com/xujiajun/utils v0.0.0-20190123093513-8bf096c4f53b // indirect
+	github.com/zhangyunhao116/fastrand v0.5.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
@@ -65,14 +64,14 @@ require (
 	github.com/spf13/cast v1.4.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/ztrue/tracerr v0.3.0
 	go.opencensus.io v0.22.5 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	golang.org/x/exp v0.0.0-20220328175248-053ad81199eb
 	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2 // indirect
-	golang.org/x/sys v0.26.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.3.8-0.20211105212822-18b340fc7af2 // indirect
 	google.golang.org/protobuf v1.26.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0

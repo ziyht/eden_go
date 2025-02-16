@@ -6,11 +6,11 @@ import (
 
 func randomLevel() int {
 	level := 1
-	for erand.Uint32n(1/_P) == 0 {
+	for erand.Uint32n(1/P) == 0 {
 		level++
 	}
-	if level > _MAX_LEVEL {
-		return _MAX_LEVEL
+	if level > MAX_LEVEL {
+		return MAX_LEVEL
 	}
 	return level
 }

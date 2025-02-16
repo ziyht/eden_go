@@ -24,7 +24,7 @@ type elem[K cst.Ordered, V any] struct {
 type Node[K cst.Ordered, V any] struct {
 	meta
 	elem[K, V]
-	next [_MAX_LEVEL]unsafe.Pointer
+	next [MAX_LEVEL]unsafe.Pointer
 }
 
 func newEslNode[K cst.Ordered, V any](key K, val V, level int) *Node[K, V] {
@@ -61,7 +61,7 @@ func newEslNode[K cst.Ordered, V any](key K, val V, level int) *Node[K, V] {
 		case 30: n := struct{ meta; elem[K, V]; next [30]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
 		case 31: n := struct{ meta; elem[K, V]; next [31]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
 		case 32: n := struct{ meta; elem[K, V]; next [32]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
-		default: n := struct{ meta; elem[K, V]; next [_MAX_LEVEL]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
+		default: n := struct{ meta; elem[K, V]; next [MAX_LEVEL]unsafe.Pointer }{ meta: meta{ level: uint32(level) }, elem: elem[K, V]{ key: key, Val: val } }; return (*Node[K, V])(unsafe.Pointer(&n))
 	}
 }
 
@@ -91,7 +91,7 @@ func (n *Node[K, V]) atomicStoreNext(layer int, next *Node[K, V]) {
 
 // findNodeRemove takes a value and two maximal-height arrays then searches exactly as in a sequential skip-list.
 // The returned preds and succs always satisfy preds[i] > value >= succs[i].
-func (s *ESL[K, V]) findNodeRemove(key K, preds *[_MAX_LEVEL]*Node[K, V], succs *[_MAX_LEVEL]*Node[K, V]) int {
+func (s *ESL[K, V]) findNodeRemove(key K, preds *[MAX_LEVEL]*Node[K, V], succs *[MAX_LEVEL]*Node[K, V]) int {
 	// lFound represents the index of the first layer at which it found a node.
 	lFound, x := -1, s.tail
 	if x != nil && x.key < key {			// not exist
@@ -118,7 +118,7 @@ func (s *ESL[K, V]) findNodeRemove(key K, preds *[_MAX_LEVEL]*Node[K, V], succs 
 
 // findNodeAdd takes a key and two maximal-height arrays then searches exactly as in a sequential skip-set.
 // The returned preds and succs always satisfy preds[i] > value >= succs[i].
-func (s *ESL[K, V]) findNodeAdd(key K, preds *[_MAX_LEVEL]*Node[K, V], succs *[_MAX_LEVEL]*Node[K, V]) int {
+func (s *ESL[K, V]) findNodeAdd(key K, preds *[MAX_LEVEL]*Node[K, V], succs *[MAX_LEVEL]*Node[K, V]) int {
 	x := &s.header
 	for i := int(atomic.LoadUint64(&s.level)) - 1; i >= 0; i-- {
 		succ := x.atomicLoadNext(i)
@@ -137,7 +137,7 @@ func (s *ESL[K, V]) findNodeAdd(key K, preds *[_MAX_LEVEL]*Node[K, V], succs *[_
 	return -1
 }
 
-func unlockOrdered[K cst.Ordered, V any](preds [_MAX_LEVEL]*Node[K, V], highestLevel int) {
+func unlockOrdered[K cst.Ordered, V any](preds [MAX_LEVEL]*Node[K, V], highestLevel int) {
 	var prevPred *Node[K, V]
 	for i := highestLevel; i >= 0; i-- {
 		if preds[i] != prevPred { // the node could be unlocked by previous loop
@@ -153,7 +153,7 @@ func unlockOrdered[K cst.Ordered, V any](preds [_MAX_LEVEL]*Node[K, V], highestL
 // If the value is in the skip set but not fully linked, this process will wait until it is.
 func (s *ESL[K, V]) add(key K, val V, set bool) (prev V, replaced bool) {
 	level := s.randomLevel()
-	var preds, succs [_MAX_LEVEL]*Node[K, V]
+	var preds, succs [MAX_LEVEL]*Node[K, V]
 	for {
 		lFound := s.findNodeAdd(key, &preds, &succs)
 		if lFound != -1 { // indicating the value is already in the skip-list
@@ -260,8 +260,12 @@ func (s *ESL[K, V]) find(key K) (*Node[K, V]) {
 		}
 
 		// Check if the value already in the skip list.
-		if nex != nil && nex.key == key && nex.flags.Check(fullyLinked|deleting, fullyLinked) {
-			return nex
+		if nex != nil && nex.key == key {
+			if nex.flags.Check(fullyLinked|deleting, fullyLinked) {
+				return nex
+			}
+			// deleting means node expect not in the skip list
+			return nil
 		}
 	}
 
@@ -274,7 +278,7 @@ func (s *ESL[K, V]) Remove(key K) bool {
 		nodeToRemove *Node[K, V]
 		isDeleting   bool // represents if this operation mark the node
 		topLayer     = -1
-		preds, succs [_MAX_LEVEL]*Node[K, V]
+		preds, succs [MAX_LEVEL]*Node[K, V]
 	)
 	for {
 		lFound := s.findNodeRemove(key, &preds, &succs)
@@ -330,7 +334,7 @@ func (s *ESL[K, V]) Remove(key K) bool {
 			}
 
 			// Down level if possible.
-			for s.level > _INIT_LEVEL && s.header.next[s.level-1] == nil {
+			for s.level > INIT_LEVEL && s.header.next[s.level-1] == nil {
 				s.level--
 			}
 			nodeToRemove.mu.Unlock()

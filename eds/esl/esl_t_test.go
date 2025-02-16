@@ -103,6 +103,27 @@ func TestSet(t *testing.T) {
 	assert.Equal(t, 2, sl.Val(2))
 }
 
+func TestFind(t *testing.T) {
+
+	sl := New[int, int]()
+
+	for i := 0; i < 10000; i++ {
+		if i % 2 == 1 {
+		} else {
+			sl.Add(i, i)
+		}
+	}
+
+	for i := 0; i < 10000; i++ {
+		if i % 2 == 1 {
+			assert.Nil(t, sl.Find(i))
+		} else {
+			assert.Equal(t, i, sl.Val(i))
+		}
+	}
+
+}
+
 func TestPop(t *testing.T) {
 
 	sl := New[int, int]()
