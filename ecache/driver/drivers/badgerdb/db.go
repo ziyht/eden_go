@@ -1,8 +1,8 @@
 package badgerdb
 
 import (
-	badger "github.com/dgraph-io/badger/v3"
-	"github.com/dgraph-io/badger/v3/options"
+	badger "github.com/dgraph-io/badger/v4"
+	"github.com/dgraph-io/badger/v4/options"
 	"github.com/ziyht/eden_go/ecache/driver"
 )
 
